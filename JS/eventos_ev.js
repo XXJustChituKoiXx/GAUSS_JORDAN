@@ -1,41 +1,171 @@
-import { spanToInput, inputToSpan, crearSpanCelda, ajustarAnchoColumnaEV, actualizarBotonCalcularEV, tieneErroresEV } from "./celdas.js";
+import { spanToInput, inputToSpan, crearSpanCelda, ajustarAnchoColumnaEV, actualizarBotonCalcularEV } from "./celdas.js";
 
 let currentTable = null;
 let currentArticle = null;
-let currentRow = 0;
-let currentCol = 0;
 let callbacks = {};
 let isProcessingBackspace = false;
 
-// Función para validar entrada en EV
+// Para navegación - almacenan referencias a la celda actual
+let currentCell = null;
+let currentRowIndex = -1;
+let currentColIndex = -1;
+
 function esEntradaValidaEV(valor) {
     if (valor === '' || valor === '-') return true;
-    
     if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) return false;
     if (/[^0-9\-\/\.]/.test(valor)) return false;
-    
     const slashCount = (valor.match(/\//g) || []).length;
     if (slashCount > 1) return false;
-    
     if (/^\//.test(valor)) return false;
     if (/\/$/.test(valor)) return false;
-    
     if (valor.includes('/')) {
         const parts = valor.split('/');
         if (parts.length > 2) return false;
-        
         const left = parts[0];
         const right = parts[1] !== undefined ? parts[1] : '';
-        
         if (left !== '' && left !== '-' && !/^-?\d*\.?\d*$/.test(left)) return false;
         if (right !== '' && right !== '-' && !/^-?\d*\.?\d*$/.test(right)) return false;
-        
         const den = parseFloat(right);
         if (right !== '' && right !== '-' && den === 0) return false;
     } else {
         if (valor !== '-' && !/^-?\d*\.?\d*$/.test(valor)) return false;
     }
+    return true;
+}
+
+function obtenerFilasDeVectores() {
+    if (!currentTable) return [];
+    const filas = [];
+    for (let i = 0; i < currentTable.rows.length; i++) {
+        const row = currentTable.rows[i];
+        const primeraCelda = row.cells[0];
+        if (primeraCelda && (primeraCelda.innerHTML.includes("α") || primeraCelda.innerHTML.includes("β"))) {
+            filas.push(row);
+        }
+    }
+    return filas;
+}
+
+function getComponenteCellsFromRow(row) {
+    const cells = [];
+    for (let i = 2; i < row.cells.length - 1; i++) { // desde después del paréntesis izquierdo hasta antes del derecho
+        const cell = row.cells[i];
+        const span = cell.querySelector('.cell-span');
+        const input = cell.querySelector('.cell-input');
+        if (span || input) {
+            cells.push({ cell, element: span || input, colIndex: cells.length });
+        }
+    }
+    return cells;
+}
+
+function actualizarCoordenadasDesdeElemento(elemento) {
+    const td = elemento.closest('td');
+    if (!td) return false;
+    const tr = td.closest('tr');
+    if (!tr) return false;
     
+    const filasVectores = obtenerFilasDeVectores();
+    for (let i = 0; i < filasVectores.length; i++) {
+        if (filasVectores[i] === tr) {
+            currentRowIndex = i;
+            break;
+        }
+    }
+    
+    const cells = getComponenteCellsFromRow(tr);
+    for (let j = 0; j < cells.length; j++) {
+        if (cells[j].cell === td) {
+            currentColIndex = j;
+            break;
+        }
+    }
+    
+    currentCell = td;
+    if (callbacks.onFocusUpdate) callbacks.onFocusUpdate(currentRowIndex, currentColIndex);
+    return true;
+}
+
+function obtenerCeldaActual(rowIdx, colIdx) {
+    const filasVectores = obtenerFilasDeVectores();
+    if (rowIdx < 0 || rowIdx >= filasVectores.length) return null;
+    const row = filasVectores[rowIdx];
+    const cells = getComponenteCellsFromRow(row);
+    if (colIdx < 0 || colIdx >= cells.length) return null;
+    return cells[colIdx].cell;
+}
+
+function enfocarCelda(rowIdx, colIdx) {
+    const cell = obtenerCeldaActual(rowIdx, colIdx);
+    if (!cell) return false;
+    
+    const span = cell.querySelector('.cell-span');
+    const input = cell.querySelector('.cell-input');
+    
+    if (span) {
+        currentRowIndex = rowIdx;
+        currentColIndex = colIdx;
+        currentCell = cell;
+        span.click();
+        return true;
+    }
+    if (input) {
+        currentRowIndex = rowIdx;
+        currentColIndex = colIdx;
+        currentCell = cell;
+        input.focus();
+        input.select();
+        return true;
+    }
+    return false;
+}
+
+function moverIzquierda() {
+    if (currentColIndex > 0) {
+        enfocarCelda(currentRowIndex, currentColIndex - 1);
+    } else if (currentRowIndex > 0) {
+        const filasVectores = obtenerFilasDeVectores();
+        const prevRowCells = getComponenteCellsFromRow(filasVectores[currentRowIndex - 1]);
+        enfocarCelda(currentRowIndex - 1, prevRowCells.length - 1);
+    }
+}
+
+function moverDerecha() {
+    const filasVectores = obtenerFilasDeVectores();
+    const currentRowCells = getComponenteCellsFromRow(filasVectores[currentRowIndex]);
+    if (currentColIndex < currentRowCells.length - 1) {
+        enfocarCelda(currentRowIndex, currentColIndex + 1);
+    } else if (currentRowIndex < filasVectores.length - 1) {
+        enfocarCelda(currentRowIndex + 1, 0);
+    }
+}
+
+function moverArriba() {
+    if (currentRowIndex > 0) {
+        const filasVectores = obtenerFilasDeVectores();
+        const prevRowCells = getComponenteCellsFromRow(filasVectores[currentRowIndex - 1]);
+        const newCol = Math.min(currentColIndex, prevRowCells.length - 1);
+        enfocarCelda(currentRowIndex - 1, newCol);
+    }
+}
+
+function moverAbajo() {
+    const filasVectores = obtenerFilasDeVectores();
+    if (currentRowIndex < filasVectores.length - 1) {
+        const nextRowCells = getComponenteCellsFromRow(filasVectores[currentRowIndex + 1]);
+        const newCol = Math.min(currentColIndex, nextRowCells.length - 1);
+        enfocarCelda(currentRowIndex + 1, newCol);
+    }
+}
+
+function manejarFlechas(key) {
+    switch (key) {
+        case 'ArrowLeft': moverIzquierda(); break;
+        case 'ArrowRight': moverDerecha(); break;
+        case 'ArrowUp': moverArriba(); break;
+        case 'ArrowDown': moverAbajo(); break;
+        default: return false;
+    }
     return true;
 }
 
@@ -44,6 +174,17 @@ export function configurarEventosEV(article, table, cbs = {}) {
     currentTable = table;
     currentArticle = article;
     callbacks = cbs;
+
+    // Inicializar primera celda
+    setTimeout(() => {
+        const filas = obtenerFilasDeVectores();
+        if (filas.length > 0) {
+            const cells = getComponenteCellsFromRow(filas[0]);
+            if (cells.length > 0) {
+                enfocarCelda(0, 0);
+            }
+        }
+    }, 50);
 
     currentArticle.addEventListener('keydown', manejarKeydown);
     currentArticle.addEventListener('click', manejarClick);
@@ -64,10 +205,13 @@ export function desconfigurarEventosEV() {
     currentArticle = null;
     callbacks = {};
     isProcessingBackspace = false;
+    currentCell = null;
+    currentRowIndex = -1;
+    currentColIndex = -1;
 }
 
 function prevenirScrollEspacio(e) {
-    if (e.key === ' ' && (document.activeElement.classList.contains('cell-input') || document.activeElement.classList.contains('cell-span'))) {
+    if (e.key === ' ' && (document.activeElement?.classList.contains('cell-input') || document.activeElement?.classList.contains('cell-span'))) {
         e.preventDefault();
     }
 }
@@ -80,6 +224,14 @@ function manejarKeydown(e) {
 
     actualizarCoordenadasDesdeElemento(target);
 
+    // Ctrl+Enter
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        const btnCalcular = document.getElementById("btnCalcularEV");
+        if (btnCalcular && !btnCalcular.disabled) btnCalcular.click();
+        return;
+    }
+
     if (e.key.startsWith('Arrow')) {
         e.preventDefault();
         const movido = manejarFlechas(e.key);
@@ -91,7 +243,7 @@ function manejarKeydown(e) {
     if (e.key === ' ') {
         e.preventDefault();
         if (isInput) inputToSpan(target);
-        if (callbacks.onSpace) callbacks.onSpace(currentRow, currentCol);
+        if (callbacks.onSpace) callbacks.onSpace(currentRowIndex, currentColIndex);
         return;
     }
 
@@ -105,12 +257,7 @@ function manejarKeydown(e) {
     if (e.key === 'Tab') {
         e.preventDefault();
         if (isInput) inputToSpan(target);
-        const maxCol = currentTable.rows[currentRow]?.cells.length - 1 || 1;
-        if (currentCol < maxCol) {
-            enfocarCelda(currentRow, currentCol + 1);
-        } else if (currentRow < currentTable.rows.length - 2) {
-            enfocarCelda(currentRow + 1, 1);
-        }
+        moverDerecha();
         if (callbacks.onSync) callbacks.onSync();
         return;
     }
@@ -129,206 +276,28 @@ function manejarKeydown(e) {
         e.stopPropagation();
         
         if (isInput) {
-            estructuraBackspace(e, currentTable, target);
+            if (target.value !== "") {
+                const newValue = target.value.slice(0, -1);
+                target.value = newValue;
+                target.dispatchEvent(new Event('input', { bubbles: true }));
+                target.focus();
+                target.setSelectionRange(target.value.length, target.value.length);
+                return;
+            }
+            // Input vacío - convertir a span y mover a izquierda
+            inputToSpan(target);
+            moverIzquierda();
+            if (callbacks.onSync) callbacks.onSync();
         } else if (isSpan) {
             target.setAttribute('data-value', '');
             target.innerHTML = '';
             target.textContent = '';
             target.classList.remove('cell-error');
             actualizarBotonCalcularEV();
-            if (currentCol > 0) {
-                enfocarCelda(currentRow, currentCol - 1);
-            } else if (currentRow > 0) {
-                enfocarCelda(currentRow - 1, (currentTable.rows[currentRow - 1].cells.length - 2));
-            }
+            moverIzquierda();
             if (callbacks.onSync) callbacks.onSync();
         }
         return;
-    }
-}
-
-function estructuraBackspace(e, table, input) {
-    if (input.value !== "") {
-        e.preventDefault();
-        const newValue = input.value.slice(0, -1);
-        input.value = newValue;
-        
-        const inputEvent = new Event('input', { bubbles: true });
-        input.dispatchEvent(inputEvent);
-        
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
-        return;
-    }
-    
-    isProcessingBackspace = true;
-    
-    try {
-        const cell = input.closest('td');
-        if (!cell) return;
-        
-        const row = cell.parentElement;
-        if (!row) return;
-        
-        const rowIndex = row.rowIndex;
-        const colIndex = cell.cellIndex;
-        
-        const celdasReales = Array.from(table.querySelectorAll('tr'))
-            .filter(tr => tr.querySelectorAll('.cell-span, .cell-input').length > 0);
-        const numFilasReales = celdasReales.length;
-        const numColsReales = table.rows[0]?.cells.length - 1 || 1;
-        const minRows = 2;
-        const minCols = 2;
-        
-        let filaVacia = true;
-        for (let c = 1; c < row.cells.length; c++) {
-            const celda = row.cells[c];
-            if (!celda) continue;
-            
-            const span = celda.querySelector('.cell-span');
-            const inp = celda.querySelector('.cell-input');
-            const valor = inp ? inp.value.trim() : (span ? (span.getAttribute('data-value') || '') : '');
-            
-            if (valor !== '' && valor !== '0') {
-                filaVacia = false;
-                break;
-            }
-        }
-        
-        let columnaVacia = true;
-        for (let r = 0; r < table.rows.length; r++) {
-            const celda = table.rows[r].cells[colIndex];
-            if (!celda) continue;
-            
-            const span = celda.querySelector('.cell-span');
-            const inp = celda.querySelector('.cell-input');
-            const valor = inp ? inp.value.trim() : (span ? (span.getAttribute('data-value') || '') : '');
-            
-            if (valor !== '' && valor !== '0') {
-                columnaVacia = false;
-                break;
-            }
-        }
-        
-        const emptySpan = crearSpanCelda("", rowIndex, colIndex);
-        
-        if (input.parentNode) {
-            input.parentNode.replaceChild(emptySpan, input);
-        } else {
-            return;
-        }
-        
-        const reenfocar = (nuevaFila, nuevaCol) => {
-            setTimeout(() => {
-                if (callbacks.onSync) callbacks.onSync();
-                if (nuevaFila >= 0 && nuevaCol >= 0) {
-                    enfocarCelda(nuevaFila, nuevaCol);
-                }
-                if (currentTable) {
-                    const numComponentes = currentTable.rows[0]?.cells.length - 1 || 2;
-                    for (let j = 1; j <= numComponentes; j++) {
-                        ajustarAnchoColumnaEV(currentTable, j);
-                    }
-                }
-                actualizarBotonCalcularEV();
-                isProcessingBackspace = false;
-            }, 30);
-        };
-        
-        if (filaVacia && numFilasReales > minRows) {
-            try {
-                row.remove();
-                const nuevaFila = Math.max(0, rowIndex - 1);
-                const nuevaCol = Math.min(colIndex - 1, (table.rows[nuevaFila]?.cells.length - 2) || 0);
-                reenfocar(nuevaFila, nuevaCol);
-            } catch (err) {
-                console.warn('Error al eliminar fila:', err);
-                isProcessingBackspace = false;
-            }
-            return;
-        }
-        
-        if (columnaVacia && numColsReales > minCols) {
-            try {
-                for (let r = 0; r < table.rows.length; r++) {
-                    if (table.rows[r].cells[colIndex]) {
-                        table.rows[r].deleteCell(colIndex);
-                    }
-                }
-                const nuevaCol = Math.max(0, colIndex - 2);
-                reenfocar(Math.min(rowIndex, table.rows.length - 1), nuevaCol);
-            } catch (err) {
-                console.warn('Error al eliminar columna:', err);
-                isProcessingBackspace = false;
-            }
-            return;
-        }
-        
-        let prevRow = rowIndex;
-        let prevCol = colIndex - 2;
-        
-        if (prevCol < 0) {
-            if (rowIndex > 0) {
-                prevRow = rowIndex - 1;
-                prevCol = (table.rows[prevRow]?.cells.length - 2) || 0;
-            } else {
-                prevCol = 0;
-            }
-        }
-        
-        if (prevRow >= 0 && prevCol >= 0) {
-            setTimeout(() => {
-                enfocarCelda(prevRow, prevCol);
-                isProcessingBackspace = false;
-            }, 10);
-        } else {
-            isProcessingBackspace = false;
-        }
-        
-        if (callbacks.onSync) callbacks.onSync();
-        
-    } catch (error) {
-        console.warn('Error en estructuraBackspace:', error);
-        isProcessingBackspace = false;
-    }
-}
-
-function manejarFlechas(key) {
-    let nextRow = currentRow;
-    let nextCol = currentCol;
-
-    if (key === 'ArrowUp') nextRow--;
-    if (key === 'ArrowDown') nextRow++;
-    if (key === 'ArrowLeft') nextCol--;
-    if (key === 'ArrowRight') nextCol++;
-
-    const numFilasVectores = currentTable.rows.length - 1;
-    const numCols = (currentTable.rows[0]?.cells.length - 1) || 0;
-
-    if (nextRow < 0 || nextRow >= numFilasVectores) return false;
-    if (nextCol < 0 || nextCol >= numCols) return false;
-
-    enfocarCelda(nextRow, nextCol);
-    return true;
-}
-
-function enfocarCelda(r, c) {
-    if (!currentTable) return;
-    const row = currentTable.rows[r];
-    if (!row) return;
-    const cell = row.cells[c + 1];
-    if (!cell) return;
-    const span = cell.querySelector('.cell-span');
-    if (span) span.click();
-}
-
-function actualizarCoordenadasDesdeElemento(elemento) {
-    const td = elemento.closest('td');
-    const tr = td?.closest('tr');
-    if (tr && td) {
-        currentRow = tr.rowIndex;
-        currentCol = td.cellIndex - 1;
-        if (callbacks.onFocusUpdate) callbacks.onFocusUpdate(currentRow, currentCol);
     }
 }
 
@@ -346,16 +315,11 @@ function manejarInput(e) {
 
     let valor = input.value;
     
-    // Validar y limpiar entrada
     if (!esEntradaValidaEV(valor)) {
-        // Si la entrada es inválida, marcar error
         input.classList.add('cell-error');
         actualizarBotonCalcularEV();
-        
-        // Limpiar caracteres inválidos pero mantener los válidos
         let cleanValue = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
         cleanValue = cleanValue.replace(/[^0-9\-\/\.]/g, '');
-        
         if (cleanValue !== valor) {
             input.value = cleanValue;
             valor = cleanValue;
@@ -364,7 +328,6 @@ function manejarInput(e) {
         input.classList.remove('cell-error');
     }
     
-    // Limitar múltiples barras
     const slashCount = (valor.match(/\//g) || []).length;
     if (slashCount > 1) {
         const primeraBarra = valor.indexOf('/');
@@ -373,19 +336,15 @@ function manejarInput(e) {
     }
     
     input.style.width = (input.value.length + 1) + "ch";
-    
     actualizarBotonCalcularEV();
-    
     if (callbacks.onSync) callbacks.onSync();
 }
 
 function manejarFocusout(e) {
     const input = e.target;
     if (!input.classList.contains('cell-input')) return;
-    
     if (isProcessingBackspace) return;
     
-    // Validar valor final antes de convertir a span
     const valor = input.value.trim();
     if (valor !== '' && !esEntradaValidaEV(valor)) {
         input.classList.add('cell-error');
@@ -393,14 +352,16 @@ function manejarFocusout(e) {
     }
     
     inputToSpan(input);
-
+    
     if (currentTable) {
-        const col = parseInt(input.getAttribute('data-col'));
         setTimeout(() => {
-            ajustarAnchoColumnaEV(currentTable, col + 1);
+            if (currentCell) {
+                const col = currentColIndex;
+                ajustarAnchoColumnaEV(currentTable, col + 2);
+            }
             actualizarBotonCalcularEV();
         }, 10);
     }
-
+    
     if (callbacks.onSync) callbacks.onSync();
 }

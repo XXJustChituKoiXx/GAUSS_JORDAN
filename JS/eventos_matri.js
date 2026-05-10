@@ -53,15 +53,12 @@ export function configurarEventos(article, table, operation) {
 }
 
 function actualizarCoordenadasDesdeElemento(elemento) {
-    if (!elemento) return false;
     const td = elemento.closest('td');
-    if (!td) return false;
-    const tr = td.closest('tr');
-    if (!tr) return false;
-
-    currentRow = tr.rowIndex;
-    currentCol = td.cellIndex;
-    return true;
+    const tr = td?.closest('tr');
+    if (tr && td) {
+        currentRow = tr.rowIndex;
+        currentCol = td.cellIndex;
+    }
 }
 
 function obtenerCelda(row, col) {
@@ -642,13 +639,22 @@ function manejarKeydown(e) {
         return;
     }
 }
-
 function manejarKeydownSpan(e, table, span) {
     const cell = span.closest('td');
     if (!cell) return;
     const row = cell.parentElement;
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
+
+    // NUEVO: Ctrl+Enter para calcular
+    if (e.ctrlKey && e.key === 'Enter') {
+        e.preventDefault();
+        const btnCalcular = document.getElementById("btnCalcularEV");
+        if (btnCalcular && !btnCalcular.disabled) {
+            btnCalcular.click();
+        }
+        return;
+    }
 
     switch (e.key) {
         case 'Enter':
@@ -704,9 +710,8 @@ function manejarKeydownSpan(e, table, span) {
         default:
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== ' ') {
                 e.preventDefault();
-                // Verificar que la tecla no sea una letra
                 if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(e.key)) {
-                    return; // Ignorar letras completamente
+                    return;
                 }
                 const input = spanToInput(span);
                 if (input) {

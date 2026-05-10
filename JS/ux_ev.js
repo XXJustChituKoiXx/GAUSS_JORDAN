@@ -252,25 +252,48 @@ function construirFilasVectores() {
         const esVectorB = esPertenecer && esUltimo;
 
         const row = document.createElement("tr");
+        
+        // Celda de etiqueta
         const labelCell = document.createElement("td");
         const label = esVectorB ? "\u03B2 =" : `\u03B1${i + 1} =`;
-        labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600;">${label}</span>`;
+        labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600; white-space:nowrap;">${label}</span>`;
         labelCell.style.pointerEvents = "none";
+        labelCell.style.verticalAlign = "middle";
         row.appendChild(labelCell);
 
+        // Paréntesis izquierdo
+        const leftParenCell = document.createElement("td");
+        leftParenCell.style.cssText = "padding: 0; vertical-align: middle;";
+        const leftParen = document.createElement("div");
+        leftParen.className = "paren-left";
+        leftParen.textContent = "(";
+        leftParenCell.appendChild(leftParen);
+        row.appendChild(leftParenCell);
+
+        // Celdas de componentes
         for (let j = 0; j < numComponentes; j++) {
             const cell = document.createElement("td");
             const span = crearSpanCelda(vector[j] || "", i, j);
             cell.appendChild(span);
             row.appendChild(cell);
         }
+
+        // Paréntesis derecho
+        const rightParenCell = document.createElement("td");
+        rightParenCell.style.cssText = "padding: 0; vertical-align: middle;";
+        const rightParen = document.createElement("div");
+        rightParen.className = "paren-right";
+        rightParen.textContent = ")";
+        rightParenCell.appendChild(rightParen);
+        row.appendChild(rightParenCell);
+
         tablaVectores.appendChild(row);
 
-        // SOLO separador entre vectores y B en modo pertenecer
+        // Separador entre vectores y B en modo pertenecer
         if (esPertenecer && i === numVectores - 2 && numVectores >= 2) {
             const separatorRow = document.createElement("tr");
             const separatorCell = document.createElement("td");
-            separatorCell.colSpan = numComponentes + 1;
+            separatorCell.colSpan = numComponentes + 3;
             separatorCell.style.borderTop = "2px solid var(--primary)";
             separatorCell.style.margin = "6px 0";
             separatorCell.style.padding = "0";
@@ -282,7 +305,7 @@ function construirFilasVectores() {
     // Botón agregar vector
     const rowBtn = document.createElement("tr");
     const cellBtn = document.createElement("td");
-    cellBtn.colSpan = numComponentes + 1;
+    cellBtn.colSpan = (vectoresHorizontales[0]?.length || 2) + 3;
     const btnAgregar = document.createElement("button");
     btnAgregar.textContent = "+ Agregar Vector";
     btnAgregar.className = "btn-agregar-vector";
@@ -297,8 +320,8 @@ function construirFilasVectores() {
 
     setTimeout(() => {
         if (tablaVectores) {
-            for (let j = 1; j <= numComponentes; j++) {
-                ajustarAnchoColumnaEV(tablaVectores, j);
+            for (let j = 0; j < numComponentes; j++) {
+                ajustarAnchoColumnaEV(tablaVectores, j + 2);
             }
         }
     }, 50);
@@ -393,7 +416,7 @@ function enfocarCelda(r, c) {
     for (let i = 0; i < tablaVectores.rows.length; i++) {
         const row = tablaVectores.rows[i];
         const primeraCelda = row.cells[0];
-        if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B"))) {
+        if (primeraCelda && (primeraCelda.innerHTML.includes("v") || primeraCelda.innerHTML.includes("B") || primeraCelda.innerHTML.includes("α"))) {
             if (contador === r) {
                 filaEncontrada = row;
                 break;
@@ -404,7 +427,8 @@ function enfocarCelda(r, c) {
 
     if (!filaEncontrada) return;
 
-    const columna = c + 1;
+    // +2 porque: cell[0]=label, cell[1]=paréntesis izquierdo, luego vienen las componentes
+    const columna = c + 2;
     if (columna >= filaEncontrada.cells.length) return;
 
     const cell = filaEncontrada.cells[columna];
@@ -538,6 +562,7 @@ function mostrarResultadoEV(resultado, operacion) {
 
     const section = UI.createSection("resultadoEVSection", `RESULTADO: ${getNombreOperacion(operacion)}`);
     const content = document.createElement("div");
+    content.className = "resultado-ev-content";
     content.style.display = "flex";
     content.style.flexDirection = "column";
     content.style.alignItems = "center";
@@ -546,17 +571,12 @@ function mostrarResultadoEV(resultado, operacion) {
     // Agregar el label V = antes de la matriz
     if (resultado.matrizReducida) {
         const wrapperMatriz = document.createElement("div");
-        wrapperMatriz.className = "result-wrapper";
+        wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
         wrapperMatriz.style.marginBottom = "1rem";
 
         const label = document.createElement("div");
-        label.className = "result-label";
+        label.className = "result-label resultado-matriz-label";
         label.textContent = "W =";
-        label.style.fontSize = "2rem";
-        label.style.fontWeight = "700";
-        label.style.color = "var(--primary)";
-        label.style.padding = "0.5rem 0.8rem";
-        label.style.whiteSpace = "nowrap";
 
         const matrixContainer = document.createElement("div");
         matrixContainer.className = "result-matrix-container";
@@ -566,7 +586,6 @@ function mostrarResultadoEV(resultado, operacion) {
 
         const numCols = resultado.matrizReducida[0]?.length || 0;
         const esPertenecer = currentOperation === "pertenecer";
-        // El separador va ENTRE las últimas 2 columnas (penúltima y última)
         const columnaSeparador = esPertenecer ? numCols - 2 : numCols - 2;
 
         resultado.matrizReducida.forEach((fila) => {
@@ -580,7 +599,6 @@ function mostrarResultadoEV(resultado, operacion) {
                 } else {
                     td.textContent = str;
                 }
-                // Aplicar separador vertical ENTRE las últimas 2 columnas
                 if (j === columnaSeparador) {
                     td.style.borderRight = "2px solid var(--primary)";
                     td.classList.add("separator-col");
@@ -596,46 +614,30 @@ function mostrarResultadoEV(resultado, operacion) {
         content.appendChild(wrapperMatriz);
     }
 
-    // Mensaje de resultado con estilo más destacado
+    // Mensaje de resultado
     const mensajeDiv = document.createElement("div");
-    mensajeDiv.style.cssText = `
-        text-align: center;
-        padding: 1rem 2rem;
-        border-radius: 12px;
-        font-weight: 700;
-        font-size: 1.2rem;
-        letter-spacing: 0.5px;
-        width: 100%;
-    `;
+    mensajeDiv.className = "resultado-mensaje";
 
     switch (operacion) {
         case "li":
             mensajeDiv.textContent = resultado.esLI ? "LINEALMENTE INDEPENDIENTE" : "LINEALMENTE DEPENDIENTE";
-            mensajeDiv.style.backgroundColor = resultado.esLI ? "rgba(0, 200, 160, 0.15)" : "rgba(255, 59, 92, 0.15)";
-            mensajeDiv.style.color = resultado.esLI ? "var(--success)" : "var(--error)";
-            mensajeDiv.style.borderLeft = `4px solid ${resultado.esLI ? "var(--success)" : "var(--error)"}`;
+            mensajeDiv.classList.add(resultado.esLI ? "mensaje-exito" : "mensaje-error");
             break;
         case "pertenecer":
-            mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL \u2112(V)" : "EL VECTOR NO PERTENECE A \u2112(V)";
-            mensajeDiv.style.backgroundColor = resultado.pertenece ? "rgba(0, 200, 160, 0.15)" : "rgba(255, 59, 92, 0.15)";
-            mensajeDiv.style.color = resultado.pertenece ? "var(--success)" : "var(--error)";
-            mensajeDiv.style.borderLeft = `4px solid ${resultado.pertenece ? "var(--success)" : "var(--error)"}`;
+            mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL ℒ(V)" : "EL VECTOR NO PERTENECE A ℒ(V)";
+            mensajeDiv.classList.add(resultado.pertenece ? "mensaje-exito" : "mensaje-error");
             break;
         case "base":
             mensajeDiv.textContent = resultado.columnasEliminadas?.length === 0
                 ? "EL CONJUNTO YA ES UNA BASE"
                 : `BASE ENCONTRADA: ${resultado.base.length} VECTORES`;
-            mensajeDiv.style.backgroundColor = "rgba(0, 200, 160, 0.15)";
-            mensajeDiv.style.color = "var(--success)";
-            mensajeDiv.style.borderLeft = "4px solid var(--success)";
+            mensajeDiv.classList.add("mensaje-exito");
             break;
         case "completar":
             mensajeDiv.textContent = resultado.canonicosAgregados?.length === 0
                 ? "LA BASE YA ESTÁ COMPLETA"
                 : `BASE COMPLETADA CON ${resultado.canonicosAgregados.length} CANÓNICOS`;
-            mensajeDiv.style.backgroundColor = "rgba(0, 200, 160, 0.15)";
-            mensajeDiv.style.color = "var(--success)";
-            mensajeDiv.style.borderLeft = "4px solid var(--success)";
+            mensajeDiv.classList.add("mensaje-exito");
             break;
     }
     content.appendChild(mensajeDiv);
@@ -643,64 +645,25 @@ function mostrarResultadoEV(resultado, operacion) {
     if (operacion === "base") {
         if (resultado.columnasEliminadas?.length > 0) {
             const p = document.createElement("p");
+            p.className = "vectores-eliminados";
             p.textContent = `Vectores eliminados: ${resultado.columnasEliminadas.map(c => c + 1).join(", ")}`;
-            p.style.cssText = `
-                color: var(--text-secondary);
-                margin: 0;
-                padding: 0.5rem 1rem;
-                background: rgba(255, 59, 92, 0.1);
-                border-radius: 6px;
-            `;
             content.appendChild(p);
         }
 
         if (resultado.base && resultado.base.length > 0) {
             const baseContainer = document.createElement("div");
-            baseContainer.style.cssText = `
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                align-items: center;
-                margin-top: 0.5rem;
-                padding: 1.5rem;
-                background: var(--bg-surface);
-                border-radius: 12px;
-                border: 2px solid var(--success);
-                width: 100%;
-            `;
+            baseContainer.className = "base-container";
 
             const baseTitle = document.createElement("p");
+            baseTitle.className = "base-title";
             baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
-            baseTitle.style.cssText = `
-                color: var(--success);
-                font-weight: 700;
-                margin: 0;
-                font-size: 1rem;
-                letter-spacing: 1px;
-            `;
             baseContainer.appendChild(baseTitle);
 
-            // Formato W = {(v1), (v2), ...}
             const conjuntoDiv = document.createElement("div");
-            conjuntoDiv.style.cssText = `
-                display: flex;
-                align-items: baseline;
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-                font-size: 1.1rem;
-                padding: 1rem;
-                background: var(--bg-page);
-                border-radius: 8px;
-                width: 100%;
-            `;
+            conjuntoDiv.className = "conjunto-container";
 
             const wLabel = document.createElement("span");
-            wLabel.style.cssText = `
-                font-weight: 700;
-                color: var(--primary);
-                margin-right: 0.5rem;
-            `;
+            wLabel.className = "conjunto-llave-abierta";
             wLabel.textContent = "W = {";
             conjuntoDiv.appendChild(wLabel);
 
@@ -708,34 +671,21 @@ function mostrarResultadoEV(resultado, operacion) {
                 const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
 
                 const vectorSpan = document.createElement("span");
-                vectorSpan.style.cssText = `
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.25rem;
-                    font-family: monospace;
-                    font-size: 1rem;
-                    padding: 0.25rem 0.5rem;
-                    border-radius: 6px;
-                    background: rgba(0, 200, 160, 0.1);
-                `;
+                vectorSpan.className = "vector-item";
                 vectorSpan.textContent = `(${vectorStr})`;
 
                 conjuntoDiv.appendChild(vectorSpan);
 
                 if (idx < resultado.base.length - 1) {
                     const comma = document.createElement("span");
-                    comma.style.cssText = `margin-right: 0.5rem;`;
+                    comma.className = "vector-comma";
                     comma.textContent = ",";
                     conjuntoDiv.appendChild(comma);
                 }
             });
 
             const closeBrace = document.createElement("span");
-            closeBrace.style.cssText = `
-                font-weight: 700;
-                color: var(--primary);
-                margin-left: 0.5rem;
-            `;
+            closeBrace.className = "conjunto-llave-cerrada";
             closeBrace.textContent = "}";
             conjuntoDiv.appendChild(closeBrace);
 
