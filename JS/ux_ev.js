@@ -10,43 +10,30 @@ let vectoresHorizontales = [["", ""], ["", ""]];
 let tablaVectores = null;
 let currentRow = 0;
 let currentCol = 0;
-// Variable para guardar el estado entre operaciones
 let savedVectoresState = null;
 
 export function cambiarOperacionEV(article, modo) {
-    // Guardar vectores actuales antes de cambiar
     guardarVectoresDesdeTabla();
     if (vectoresHorizontales && vectoresHorizontales.length > 0) {
         savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
     }
     currentOperation = modo;
-    inicializarEV(article, modo, true); // Pasar flag de restauración
+    inicializarEV(article, modo, true);
 }
 
 export function inicializarEV(article, modo, preserveState = false) {
     desconfigurarEventosEV();
     currentOperation = modo;
-
-    // Limpiar datos de archivo previo
     clearEVFileData();
-
-    // Configurar modo EV en celdas.js
     setEVMode(true);
-
-    // Configurar callback para drag & drop
     setEVCallbacks((vectores, fileName) => {
         if (vectores === null) {
-            // Se eliminó el archivo, no hacer nada o reiniciar a valores por defecto
             return;
         }
 
-        // vectores ya es un array de vectores horizontales (cada fila = un vector)
-        vectoresHorizontales = JSON.parse(JSON.stringify(vectores));
-        
-        // Guardar el estado para futuras operaciones
+        vectoresHorizontales = JSON.parse(JSON.stringify(vectores));        
         savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
 
-        // Reconstruir la tabla
         construirFilasVectores();
         sincronizarMatrizDesdeVectores();
 
@@ -75,7 +62,6 @@ export function inicializarEV(article, modo, preserveState = false) {
     tablaVectores = UI.createTable("inputTable");
     tablaVectores.style.borderSpacing = "6px";
 
-    // Restaurar vectores guardados si existen y se solicita preservar estado
     if (preserveState && savedVectoresState && savedVectoresState.length > 0) {
         vectoresHorizontales = JSON.parse(JSON.stringify(savedVectoresState));
         
@@ -105,7 +91,6 @@ export function inicializarEV(article, modo, preserveState = false) {
             }
         }
     } else {
-        // Inicializar vectores según modo por defecto (solo primera carga)
         if (modo === "pertenecer") {
             vectoresHorizontales = [["", ""], ["", ""], ["", ""]];
         } else {
@@ -176,7 +161,6 @@ export function inicializarEV(article, modo, preserveState = false) {
     configurarEventosEV(article, tablaVectores, {
         onSync: () => {
             guardarVectoresDesdeTabla();
-            // Guardar estado después de sincronizar
             if (vectoresHorizontales && vectoresHorizontales.length > 0) {
                 savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
             }
@@ -185,7 +169,6 @@ export function inicializarEV(article, modo, preserveState = false) {
         onEnter: () => {
             guardarVectoresDesdeTabla();
             agregarNuevoVector(currentRow);
-            // Guardar estado después de agregar
             if (vectoresHorizontales && vectoresHorizontales.length > 0) {
                 savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
             }
@@ -194,7 +177,6 @@ export function inicializarEV(article, modo, preserveState = false) {
         onSpace: (r, c) => {
             guardarVectoresDesdeTabla();
             agregarComponenteATodos(c);
-            // Guardar estado después de agregar componente
             if (vectoresHorizontales && vectoresHorizontales.length > 0) {
                 savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
             }
@@ -207,9 +189,7 @@ export function inicializarEV(article, modo, preserveState = false) {
             const totalVectores = vectoresHorizontales.length;
             const esVectorB = esPertenecer && (rowIndex === totalVectores - 1);
 
-            // En modo pertenecer, no permitir eliminar el vector B
             if (esPertenecer && esVectorB) {
-                // Solo limpiar el contenido de B, no eliminar la fila
                 if (tipo === 'fila' || tipo === 'ambos') {
                     const numComp = vectoresHorizontales[0]?.length || 2;
                     vectoresHorizontales[rowIndex] = Array(numComp).fill("");
@@ -219,7 +199,6 @@ export function inicializarEV(article, modo, preserveState = false) {
                 }
             }
 
-            // ELIMINACIÓN ACTIVA SEGÚN EL TIPO ENVIADO POR EL EVENTO
             if (tipo === 'fila' || tipo === 'ambos') {
                 if (vectoresHorizontales.length > 2) {
                     vectoresHorizontales.splice(rowIndex, 1);
@@ -232,9 +211,7 @@ export function inicializarEV(article, modo, preserveState = false) {
                 }
             }
 
-            // Sincronizar y reconstruir la interfaz
             verificarEliminarFilasColumnas();
-            // Guardar estado después de eliminar
             if (vectoresHorizontales && vectoresHorizontales.length > 0) {
                 savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
             }
@@ -260,7 +237,6 @@ export function inicializarEV(article, modo, preserveState = false) {
         }
     });
 
-    // Inicializar drag & drop EV
     initDragAndDropEV();
 }
 
@@ -277,7 +253,7 @@ function construirFilasVectores() {
 
         const row = document.createElement("tr");
         const labelCell = document.createElement("td");
-        const label = esVectorB ? "B =" : `v${i + 1} =`;
+        const label = esVectorB ? "\u03B2 =" : `\u03B1${i + 1} =`;
         labelCell.innerHTML = `<span style="color:var(--primary); font-weight:600;">${label}</span>`;
         labelCell.style.pointerEvents = "none";
         row.appendChild(labelCell);
@@ -290,7 +266,7 @@ function construirFilasVectores() {
         }
         tablaVectores.appendChild(row);
 
-        // SOLO separador HORIZONTAL entre vectores y B en modo pertenecer
+        // SOLO separador entre vectores y B en modo pertenecer
         if (esPertenecer && i === numVectores - 2 && numVectores >= 2) {
             const separatorRow = document.createElement("tr");
             const separatorCell = document.createElement("td");
@@ -411,7 +387,6 @@ function agregarNuevoVector(indiceFila) {
 function enfocarCelda(r, c) {
     if (!tablaVectores) return;
 
-    // Buscar la fila real (ignorando filas de separador y botón)
     let filaEncontrada = null;
     let contador = 0;
 
@@ -473,7 +448,7 @@ function guardarVectoresDesdeTabla() {
 function verificarEliminarFilasColumnas() {
     const esPertenecer = currentOperation === "pertenecer";
 
-    // Borrar filas que solo tengan celdas vacías (excepto el vector B en modo pertenecer)
+    // Borrar filas que solo tengan celdas vacías
     vectoresHorizontales = vectoresHorizontales.filter((fila, index) => {
         const esVectorB = esPertenecer && (index === vectoresHorizontales.length - 1);
         if (esVectorB) return true;
@@ -483,20 +458,16 @@ function verificarEliminarFilasColumnas() {
             return v !== "" && v !== "0";
         });
     });
-
-    // Seguridad: Mínimo 2 vectores
     while (vectoresHorizontales.length < 2) {
         const c = vectoresHorizontales[0]?.length || 2;
         vectoresHorizontales.push(new Array(c).fill(""));
     }
 
-    // En modo pertenecer, asegurar que hay exactamente un vector B al final
     if (esPertenecer && vectoresHorizontales.length < 3) {
         const c = vectoresHorizontales[0]?.length || 2;
         vectoresHorizontales.push(new Array(c).fill(""));
     }
 
-    // Borrar columnas vacías
     if (vectoresHorizontales.length > 0) {
         const totalCols = vectoresHorizontales[0].length;
         let colsAKeep = [];
@@ -525,7 +496,7 @@ function sincronizarMatrizDesdeVectores() {
 function getBotonTexto(modo) {
     const textos = {
         "li": "Calcular si es LI o LD",
-        "pertenecer": "Verificar pertenencia a S",
+        "pertenecer": "Verificar pertenencia a \u2112(V)",
         "base": "Hallar base",
         "completar": "Completar base"
     };
@@ -535,7 +506,7 @@ function getBotonTexto(modo) {
 function getNombreOperacion(modo) {
     const nombres = {
         "li": "CLASIFICACIÓN LI / LD",
-        "pertenecer": "PERTENENCIA AL ESPACIO GENERADO",
+        "pertenecer": "PERTENENCIA A \u2112(V)",
         "base": "BASE DEL ESPACIO VECTORIAL",
         "completar": "COMPLETACIÓN DE BASE"
     };
@@ -580,7 +551,7 @@ function mostrarResultadoEV(resultado, operacion) {
 
         const label = document.createElement("div");
         label.className = "result-label";
-        label.textContent = "V =";
+        label.textContent = "W =";
         label.style.fontSize = "2rem";
         label.style.fontWeight = "700";
         label.style.color = "var(--primary)";
@@ -645,7 +616,7 @@ function mostrarResultadoEV(resultado, operacion) {
             mensajeDiv.style.borderLeft = `4px solid ${resultado.esLI ? "var(--success)" : "var(--error)"}`;
             break;
         case "pertenecer":
-            mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL ESPACIO GENERADO" : "EL VECTOR NO PERTENECE AL ESPACIO GENERADO";
+            mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL \u2112(V)" : "EL VECTOR NO PERTENECE A \u2112(V)";
             mensajeDiv.style.backgroundColor = resultado.pertenece ? "rgba(0, 200, 160, 0.15)" : "rgba(255, 59, 92, 0.15)";
             mensajeDiv.style.color = resultado.pertenece ? "var(--success)" : "var(--error)";
             mensajeDiv.style.borderLeft = `4px solid ${resultado.pertenece ? "var(--success)" : "var(--error)"}`;

@@ -69,7 +69,7 @@ function buildAside() {
     } else {
         const ops = [
             { id: "btnLI", text: "ES LI O LD", modo: "li" },
-            { id: "btnPertenecer", text: "PERTENECE A S", modo: "pertenecer" },
+            { id: "btnPertenecer", text: "PERTENECE A \u2112(V)", modo: "pertenecer" },
             { id: "btnBase", text: "HALLAR BASE", modo: "base" },
             { id: "btnCompletar", text: "COMPLETAR BASE", modo: "completar" }
         ];
