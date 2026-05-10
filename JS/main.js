@@ -28,34 +28,34 @@ document.addEventListener("keydown", (e) => {
 // ========== CONSTRUIR ASIDE ==========
 function buildAside() {
     aside.innerHTML = "";
-    
+
     // Grupo de navegación
     const navGroup = UI.createDiv("navGroup");
     navGroup.className = "nav-group";
-    
+
     const btnMat = UI.createButton("btnNavMatrices", "Matrices", "nav-btn");
     const btnEV = UI.createButton("btnNavEV", "E.V y S.E.V", "nav-btn");
-    
+
     if (currentModule === "matrices") btnMat.classList.add("seleccionado");
     else btnEV.classList.add("seleccionado");
-    
+
     btnMat.addEventListener("click", () => switchModule("matrices"));
     btnEV.addEventListener("click", () => switchModule("ev"));
-    
+
     navGroup.appendChild(btnMat);
     navGroup.appendChild(btnEV);
     aside.appendChild(navGroup);
-    
+
     // Lista de operaciones
     const ul = document.createElement("ul");
-    
+
     if (currentModule === "matrices") {
         const ops = [
             { id: "AXB", text: "AX=B" },
             { id: "inversa", text: "INVERSA" },
             { id: "determinante", text: "DETERMINANTE" }
         ];
-        
+
         ops.forEach(op => {
             const li = document.createElement("li");
             const btn = UI.createButton(op.id, op.text, "btn");
@@ -69,11 +69,12 @@ function buildAside() {
     } else {
         const ops = [
             { id: "btnLI", text: "ES LI O LD", modo: "li" },
-            { id: "btnPertenecer", text: "PERTENECE A \u2112(V)", modo: "pertenecer" },
+            { id: "btnPertenecer", text: "PERTENECE A ℒ(V)", modo: "pertenecer" },
             { id: "btnBase", text: "HALLAR BASE", modo: "base" },
-            { id: "btnCompletar", text: "COMPLETAR BASE", modo: "completar" }
+            { id: "btnCompletar", text: "COMPLETAR BASE", modo: "completar" },
+            { id: "btnOrtogonalizar", text: "ORTOGONALIZAR", modo: "ortogonalizar" }
         ];
-        
+
         ops.forEach(op => {
             const li = document.createElement("li");
             const btn = UI.createButton(op.id, op.text, "btn");
@@ -85,9 +86,9 @@ function buildAside() {
             ul.appendChild(li);
         });
     }
-    
+
     aside.appendChild(ul);
-    
+
     // Toggle tema
     const themeBtn = UI.createButton("themeToggle", "MODO CLARO");
     themeBtn.addEventListener("click", () => {
@@ -106,10 +107,10 @@ function updateSelection(activeId) {
 function switchModule(module) {
     if (currentModule === module) return;
     currentModule = module;
-    
+
     desconfigurarEventosEV();
-    desconfigurarEventosMatri(article); 
-    
+    desconfigurarEventosMatri(article);
+
     if (module === "matrices") {
         buildAside();
         inicializarMatriz(article, "axb");

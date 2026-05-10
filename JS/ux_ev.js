@@ -1,7 +1,7 @@
 import UI from "./ui.js";
 import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
 import Auxiliares from "./auxiliares.js";
-import { clasificarLIoLD, perteneceAS, hallarBase, completarBase } from "./calculos.js";
+import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar } from "./calculos.js";
 import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js";
 import { crearSpanCelda, setEVMode, ajustarAnchoColumnaEV, ajustarTodasColumnasEV } from "./celdas.js";
 
@@ -31,7 +31,7 @@ export function inicializarEV(article, modo, preserveState = false) {
             return;
         }
 
-        vectoresHorizontales = JSON.parse(JSON.stringify(vectores));        
+        vectoresHorizontales = JSON.parse(JSON.stringify(vectores));
         savedVectoresState = JSON.parse(JSON.stringify(vectoresHorizontales));
 
         construirFilasVectores();
@@ -64,13 +64,10 @@ export function inicializarEV(article, modo, preserveState = false) {
 
     if (preserveState && savedVectoresState && savedVectoresState.length > 0) {
         vectoresHorizontales = JSON.parse(JSON.stringify(savedVectoresState));
-        
-        // Validar que la estructura sea correcta según el modo
+
         const esPertenecer = modo === "pertenecer";
-        
+
         if (esPertenecer) {
-            // En modo pertenecer, NO agregar vectores extra - usar exactamente los guardados
-            // Solo asegurar que todas las filas tengan la misma longitud
             const numComp = vectoresHorizontales[0]?.length || 2;
             for (let i = 0; i < vectoresHorizontales.length; i++) {
                 while (vectoresHorizontales[i].length < numComp) {
@@ -78,12 +75,10 @@ export function inicializarEV(article, modo, preserveState = false) {
                 }
             }
         } else {
-            // En otros modos, asegurar al menos 2 vectores
             const numComp = vectoresHorizontales[0]?.length || 2;
             while (vectoresHorizontales.length < 2) {
                 vectoresHorizontales.push(Array(numComp).fill(""));
             }
-            // Asegurar que todas las filas tengan la misma longitud
             for (let i = 0; i < vectoresHorizontales.length; i++) {
                 while (vectoresHorizontales[i].length < numComp) {
                     vectoresHorizontales[i].push("");
@@ -149,6 +144,9 @@ export function inicializarEV(article, modo, preserveState = false) {
                 break;
             case "completar":
                 resultado = completarBase(matriz);
+                break;
+            case "ortogonalizar":  // ← NUEVO
+                resultado = ortogonalizar(matriz);
                 break;
         }
 
@@ -252,7 +250,7 @@ function construirFilasVectores() {
         const esVectorB = esPertenecer && esUltimo;
 
         const row = document.createElement("tr");
-        
+
         // Celda de etiqueta
         const labelCell = document.createElement("td");
         const label = esVectorB ? "\u03B2 =" : `\u03B1${i + 1} =`;
@@ -520,9 +518,10 @@ function sincronizarMatrizDesdeVectores() {
 function getBotonTexto(modo) {
     const textos = {
         "li": "Calcular si es LI o LD",
-        "pertenecer": "Verificar pertenencia a \u2112(V)",
+        "pertenecer": "Verificar pertenencia a ℒ(V)",
         "base": "Hallar base",
-        "completar": "Completar base"
+        "completar": "Completar base",
+        "ortogonalizar": "Calcular base ortogonal"
     };
     return textos[modo] || "Calcular";
 }
@@ -532,7 +531,8 @@ function getNombreOperacion(modo) {
         "li": "CLASIFICACIÓN LI / LD",
         "pertenecer": "PERTENENCIA A \u2112(V)",
         "base": "BASE DEL ESPACIO VECTORIAL",
-        "completar": "COMPLETACIÓN DE BASE"
+        "completar": "COMPLETACIÓN DE BASE",
+        "ortogonalizar": "BASE ORTOGONAL"
     };
     return nombres[modo] || "RESULTADO";
 }
@@ -568,8 +568,8 @@ function mostrarResultadoEV(resultado, operacion) {
     content.style.alignItems = "center";
     content.style.gap = "1.5rem";
 
-    // Agregar el label V = antes de la matriz
-    if (resultado.matrizReducida) {
+    // Mostrar matriz reducida (para LI/LD, pertenecer, base, completar)
+    if (resultado.matrizReducida && operacion !== "ortogonalizar") {
         const wrapperMatriz = document.createElement("div");
         wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
         wrapperMatriz.style.marginBottom = "1rem";
@@ -614,7 +614,49 @@ function mostrarResultadoEV(resultado, operacion) {
         content.appendChild(wrapperMatriz);
     }
 
-    // Mensaje de resultado
+    // Mostrar matriz ortogonal (para ortogonalizar)
+    if (operacion === "ortogonalizar" && resultado && resultado.length > 0) {
+        const wrapperMatriz = document.createElement("div");
+        wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
+        wrapperMatriz.style.marginBottom = "1rem";
+
+        const label = document.createElement("div");
+        label.className = "result-label resultado-matriz-label";
+        label.textContent = "W =";
+
+        const matrixContainer = document.createElement("div");
+        matrixContainer.className = "result-matrix-container";
+
+        const tabla = document.createElement("table");
+        tabla.className = "result-table";
+
+        const numFilas = resultado[0]?.length || 0;
+        const numColumnas = resultado.length;
+
+        for (let i = 0; i < numFilas; i++) {
+            const tr = document.createElement("tr");
+            for (let j = 0; j < numColumnas; j++) {
+                const td = document.createElement("td");
+                const vector = resultado[j];
+                const valor = vector[i];
+                const str = Auxiliares.fraccionToString(valor);
+                if (str.includes("/")) {
+                    const [num, den] = str.split("/");
+                    td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+                } else {
+                    td.textContent = str;
+                }
+                tr.appendChild(td);
+            }
+            tabla.appendChild(tr);
+        }
+
+        matrixContainer.appendChild(tabla);
+        wrapperMatriz.appendChild(label);
+        wrapperMatriz.appendChild(matrixContainer);
+        content.appendChild(wrapperMatriz);
+    }
+
     const mensajeDiv = document.createElement("div");
     mensajeDiv.className = "resultado-mensaje";
 
@@ -639,10 +681,14 @@ function mostrarResultadoEV(resultado, operacion) {
                 : `BASE COMPLETADA CON ${resultado.canonicosAgregados.length} CANÓNICOS`;
             mensajeDiv.classList.add("mensaje-exito");
             break;
+        case "ortogonalizar":
+            mensajeDiv.textContent = "BASE ORTOGONAL";
+            mensajeDiv.classList.add("mensaje-exito");
+            break;
     }
     content.appendChild(mensajeDiv);
 
-    if (operacion === "base") {
+    if (operacion === "base" && resultado.base && resultado.base.length > 0) {
         if (resultado.columnasEliminadas?.length > 0) {
             const p = document.createElement("p");
             p.className = "vectores-eliminados";
@@ -650,48 +696,43 @@ function mostrarResultadoEV(resultado, operacion) {
             content.appendChild(p);
         }
 
-        if (resultado.base && resultado.base.length > 0) {
-            const baseContainer = document.createElement("div");
-            baseContainer.className = "base-container";
+        const baseContainer = document.createElement("div");
+        baseContainer.className = "base-container";
 
-            const baseTitle = document.createElement("p");
-            baseTitle.className = "base-title";
-            baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
-            baseContainer.appendChild(baseTitle);
+        const baseTitle = document.createElement("p");
+        baseTitle.className = "base-title";
+        baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
+        baseContainer.appendChild(baseTitle);
 
-            const conjuntoDiv = document.createElement("div");
-            conjuntoDiv.className = "conjunto-container";
+        const conjuntoDiv = document.createElement("div");
+        conjuntoDiv.className = "conjunto-container";
 
-            const wLabel = document.createElement("span");
-            wLabel.className = "conjunto-llave-abierta";
-            wLabel.textContent = "W = {";
-            conjuntoDiv.appendChild(wLabel);
+        const wLabel = document.createElement("span");
+        wLabel.className = "conjunto-llave-abierta";
+        wLabel.textContent = "W = {";
+        conjuntoDiv.appendChild(wLabel);
 
-            resultado.base.forEach((vector, idx) => {
-                const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+        resultado.base.forEach((vector, idx) => {
+            const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+            const vectorSpan = document.createElement("span");
+            vectorSpan.className = "vector-item";
+            vectorSpan.textContent = `(${vectorStr})`;
+            conjuntoDiv.appendChild(vectorSpan);
+            if (idx < resultado.base.length - 1) {
+                const comma = document.createElement("span");
+                comma.className = "vector-comma";
+                comma.textContent = ",";
+                conjuntoDiv.appendChild(comma);
+            }
+        });
 
-                const vectorSpan = document.createElement("span");
-                vectorSpan.className = "vector-item";
-                vectorSpan.textContent = `(${vectorStr})`;
+        const closeBrace = document.createElement("span");
+        closeBrace.className = "conjunto-llave-cerrada";
+        closeBrace.textContent = "}";
+        conjuntoDiv.appendChild(closeBrace);
 
-                conjuntoDiv.appendChild(vectorSpan);
-
-                if (idx < resultado.base.length - 1) {
-                    const comma = document.createElement("span");
-                    comma.className = "vector-comma";
-                    comma.textContent = ",";
-                    conjuntoDiv.appendChild(comma);
-                }
-            });
-
-            const closeBrace = document.createElement("span");
-            closeBrace.className = "conjunto-llave-cerrada";
-            closeBrace.textContent = "}";
-            conjuntoDiv.appendChild(closeBrace);
-
-            baseContainer.appendChild(conjuntoDiv);
-            content.appendChild(baseContainer);
-        }
+        baseContainer.appendChild(conjuntoDiv);
+        content.appendChild(baseContainer);
     }
 
     if (operacion === "completar" && resultado.baseCompleta && resultado.baseCompleta.length > 0) {
@@ -716,13 +757,10 @@ function mostrarResultadoEV(resultado, operacion) {
         resultado.baseCompleta.forEach((vector, idx) => {
             const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
             const esCanonico = resultado.canonicosAgregados?.includes(idx - (resultado.baseOriginal || []).length);
-
             const vectorSpan = document.createElement("span");
             vectorSpan.className = `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`;
             vectorSpan.textContent = `(${vectorStr})`;
-
             conjuntoDiv.appendChild(vectorSpan);
-
             if (idx < resultado.baseCompleta.length - 1) {
                 const comma = document.createElement("span");
                 comma.className = "base-completa-comma";
