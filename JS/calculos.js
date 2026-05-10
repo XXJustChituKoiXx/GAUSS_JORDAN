@@ -340,10 +340,27 @@ export function ortogonalizar(matriz) {
         vectoresOriginales.push(obtenerColumna(matriz, j));
     }
     
+    //obtener una base LI usando hallarBase
+    const matrizVectores = [];
+    for (let i = 0; i < n; i++) {
+        const fila = [];
+        for (let j = 0; j < m; j++) {
+            fila.push(vectoresOriginales[j][i]);
+        }
+        matrizVectores.push(fila);
+    }
+    
+    const { base } = hallarBase(matrizVectores);
+    
+    if (base.length === 1) {
+        throw new Error("Todos los vectores son linealmente dependientes");
+    }
+    
+    //ortogonalizar la base LI
     const vectoresOrtogonales = [];
     
-    for (let i = 0; i < m; i++) {
-        let vectorActual = vectoresOriginales[i].map(v => ({ num: v.num, den: v.den }));
+    for (let i = 0; i < base.length; i++) {
+        let vectorActual = base[i].map(v => ({ num: v.num, den: v.den }));
         
         for (let j = 0; j < vectoresOrtogonales.length; j++) {
             const vectorBase = vectoresOrtogonales[j];
@@ -358,13 +375,7 @@ export function ortogonalizar(matriz) {
             }
         }
         
-        if (!esVectorCero(vectorActual)) {
-            vectoresOrtogonales.push(vectorActual);
-        }
-    }
-    
-    if (vectoresOrtogonales.length === 0) {
-        throw new Error("Todos los vectores son linealmente dependientes");
+        vectoresOrtogonales.push(vectorActual);
     }
     
     return vectoresOrtogonales;

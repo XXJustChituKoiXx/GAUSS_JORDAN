@@ -100,7 +100,7 @@ export function inicializarEV(article, modo, preserveState = false) {
     mainSection.appendChild(wrapperVectores);
     article.appendChild(mainSection);
 
-    const resultSection = UI.createSection("resultSection", "MATRIZ (VECTORES COMO COLUMNAS)");
+    const resultSection = UI.createSection("resultSection", "MATRIZ");
     const wrapperMatriz = document.createElement("div");
     wrapperMatriz.className = "result-wrapper";
 
@@ -145,8 +145,12 @@ export function inicializarEV(article, modo, preserveState = false) {
             case "completar":
                 resultado = completarBase(matriz);
                 break;
-            case "ortogonalizar":  // ← NUEVO
-                resultado = ortogonalizar(matriz);
+            case "ortogonalizar":
+                try {
+                    resultado = ortogonalizar(matriz);
+                } catch (error) {
+                    resultado = { esError: true, mensaje: error.message };
+                }
                 break;
         }
 
@@ -332,17 +336,16 @@ function construirMatrizColumnas(table) {
     let numVectores = vectoresHorizontales.length;
     const numComponentes = vectoresHorizontales[0]?.length || 2;
     const esPertenecer = currentOperation === "pertenecer";
+    const esOrtogonalizar = currentOperation === "ortogonalizar";
 
-    // Para operaciones que no son "pertenecer", agregar una columna de ceros al final (vector B = 0)
     let columnasAMostrar = numVectores;
     let mostrarColumnaCeros = false;
 
-    if (!esPertenecer) {
+    if (!esPertenecer && !esOrtogonalizar) {
         mostrarColumnaCeros = true;
         columnasAMostrar = numVectores + 1;
     }
 
-    // El separador va ANTES de la última columna (que es B)
     const columnaSeparador = esPertenecer ? numVectores - 2 : numVectores - 1;
 
     for (let i = 0; i < numComponentes; i++) {
@@ -352,8 +355,7 @@ function construirMatrizColumnas(table) {
             const cell = document.createElement("td");
             let valor;
 
-            if (!esPertenecer && j === numVectores) {
-                // Esta es la columna extra de ceros
+            if (!esPertenecer && !esOrtogonalizar && j === numVectores) {
                 valor = "0";
             } else {
                 valor = vectoresHorizontales[j][i] || "";
@@ -366,8 +368,7 @@ function construirMatrizColumnas(table) {
                 cell.textContent = valor === "" ? "0" : valor;
             }
 
-            // Aplicar separador vertical ANTES de la última columna
-            if (j === columnaSeparador) {
+            if (!esOrtogonalizar && j === columnaSeparador) {
                 cell.style.borderRight = "2px solid var(--primary)";
                 cell.classList.add("separator-col");
             }
@@ -568,227 +569,240 @@ function mostrarResultadoEV(resultado, operacion) {
     content.style.alignItems = "center";
     content.style.gap = "1.5rem";
 
-    // Mostrar matriz reducida (para LI/LD, pertenecer, base, completar)
-    if (resultado.matrizReducida && operacion !== "ortogonalizar") {
-        const wrapperMatriz = document.createElement("div");
-        wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
-        wrapperMatriz.style.marginBottom = "1rem";
+    // Verificar si resultado es un error
+    const esError = resultado && resultado.esError;
 
-        const label = document.createElement("div");
-        label.className = "result-label resultado-matriz-label";
-        label.textContent = "W =";
+    // Mostrar matriz solo si no es error
+    if (!esError) {
+        // Mostrar matriz ortogonal (para ortogonalizar)
+        if (operacion === "ortogonalizar" && resultado && resultado.length > 0) {
+            const wrapperMatriz = document.createElement("div");
+            wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
+            wrapperMatriz.style.marginBottom = "1rem";
 
-        const matrixContainer = document.createElement("div");
-        matrixContainer.className = "result-matrix-container";
+            const label = document.createElement("div");
+            label.className = "result-label resultado-matriz-label";
+            label.textContent = "W =";
 
-        const tabla = document.createElement("table");
-        tabla.className = "result-table";
+            const matrixContainer = document.createElement("div");
+            matrixContainer.className = "result-matrix-container";
 
-        const numCols = resultado.matrizReducida[0]?.length || 0;
-        const esPertenecer = currentOperation === "pertenecer";
-        const columnaSeparador = esPertenecer ? numCols - 2 : numCols - 2;
+            const tabla = document.createElement("table");
+            tabla.className = "result-table";
 
-        resultado.matrizReducida.forEach((fila) => {
-            const tr = document.createElement("tr");
-            fila.forEach((valor, j) => {
-                const td = document.createElement("td");
-                const str = Auxiliares.fraccionToString(valor);
-                if (str.includes("/")) {
-                    const [num, den] = str.split("/");
-                    td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
-                } else {
-                    td.textContent = str;
+            const numFilas = resultado[0]?.length || 0;
+            const numColumnas = resultado.length;
+
+            for (let i = 0; i < numFilas; i++) {
+                const tr = document.createElement("tr");
+                for (let j = 0; j < numColumnas; j++) {
+                    const td = document.createElement("td");
+                    const vector = resultado[j];
+                    const valor = vector[i];
+                    const str = Auxiliares.fraccionToString(valor);
+                    if (str.includes("/")) {
+                        const [num, den] = str.split("/");
+                        td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+                    } else {
+                        td.textContent = str;
+                    }
+                    tr.appendChild(td);
                 }
-                if (j === columnaSeparador) {
-                    td.style.borderRight = "2px solid var(--primary)";
-                    td.classList.add("separator-col");
-                }
-                tr.appendChild(td);
-            });
-            tabla.appendChild(tr);
-        });
-
-        matrixContainer.appendChild(tabla);
-        wrapperMatriz.appendChild(label);
-        wrapperMatriz.appendChild(matrixContainer);
-        content.appendChild(wrapperMatriz);
-    }
-
-    // Mostrar matriz ortogonal (para ortogonalizar)
-    if (operacion === "ortogonalizar" && resultado && resultado.length > 0) {
-        const wrapperMatriz = document.createElement("div");
-        wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
-        wrapperMatriz.style.marginBottom = "1rem";
-
-        const label = document.createElement("div");
-        label.className = "result-label resultado-matriz-label";
-        label.textContent = "W =";
-
-        const matrixContainer = document.createElement("div");
-        matrixContainer.className = "result-matrix-container";
-
-        const tabla = document.createElement("table");
-        tabla.className = "result-table";
-
-        const numFilas = resultado[0]?.length || 0;
-        const numColumnas = resultado.length;
-
-        for (let i = 0; i < numFilas; i++) {
-            const tr = document.createElement("tr");
-            for (let j = 0; j < numColumnas; j++) {
-                const td = document.createElement("td");
-                const vector = resultado[j];
-                const valor = vector[i];
-                const str = Auxiliares.fraccionToString(valor);
-                if (str.includes("/")) {
-                    const [num, den] = str.split("/");
-                    td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
-                } else {
-                    td.textContent = str;
-                }
-                tr.appendChild(td);
+                tabla.appendChild(tr);
             }
-            tabla.appendChild(tr);
+
+            matrixContainer.appendChild(tabla);
+            wrapperMatriz.appendChild(label);
+            wrapperMatriz.appendChild(matrixContainer);
+            content.appendChild(wrapperMatriz);
         }
 
-        matrixContainer.appendChild(tabla);
-        wrapperMatriz.appendChild(label);
-        wrapperMatriz.appendChild(matrixContainer);
-        content.appendChild(wrapperMatriz);
+        // Mostrar matriz reducida (para LI/LD, pertenecer, base, completar)
+        if (resultado.matrizReducida && operacion !== "ortogonalizar") {
+            const wrapperMatriz = document.createElement("div");
+            wrapperMatriz.className = "result-wrapper resultado-matriz-wrapper";
+            wrapperMatriz.style.marginBottom = "1rem";
+
+            const label = document.createElement("div");
+            label.className = "result-label resultado-matriz-label";
+            label.textContent = "W =";
+
+            const matrixContainer = document.createElement("div");
+            matrixContainer.className = "result-matrix-container";
+
+            const tabla = document.createElement("table");
+            tabla.className = "result-table";
+
+            const numCols = resultado.matrizReducida[0]?.length || 0;
+            const esPertenecer = currentOperation === "pertenecer";
+            const columnaSeparador = esPertenecer ? numCols - 2 : numCols - 2;
+
+            resultado.matrizReducida.forEach((fila) => {
+                const tr = document.createElement("tr");
+                fila.forEach((valor, j) => {
+                    const td = document.createElement("td");
+                    const str = Auxiliares.fraccionToString(valor);
+                    if (str.includes("/")) {
+                        const [num, den] = str.split("/");
+                        td.innerHTML = `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+                    } else {
+                        td.textContent = str;
+                    }
+                    if (j === columnaSeparador) {
+                        td.style.borderRight = "2px solid var(--primary)";
+                        td.classList.add("separator-col");
+                    }
+                    tr.appendChild(td);
+                });
+                tabla.appendChild(tr);
+            });
+
+            matrixContainer.appendChild(tabla);
+            wrapperMatriz.appendChild(label);
+            wrapperMatriz.appendChild(matrixContainer);
+            content.appendChild(wrapperMatriz);
+        }
     }
 
     const mensajeDiv = document.createElement("div");
     mensajeDiv.className = "resultado-mensaje";
 
-    switch (operacion) {
-        case "li":
-            mensajeDiv.textContent = resultado.esLI ? "LINEALMENTE INDEPENDIENTE" : "LINEALMENTE DEPENDIENTE";
-            mensajeDiv.classList.add(resultado.esLI ? "mensaje-exito" : "mensaje-error");
-            break;
-        case "pertenecer":
-            mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL ℒ(V)" : "EL VECTOR NO PERTENECE A ℒ(V)";
-            mensajeDiv.classList.add(resultado.pertenece ? "mensaje-exito" : "mensaje-error");
-            break;
-        case "base":
-            mensajeDiv.textContent = resultado.columnasEliminadas?.length === 0
-                ? "EL CONJUNTO YA ES UNA BASE"
-                : `BASE ENCONTRADA: ${resultado.base.length} VECTORES`;
-            mensajeDiv.classList.add("mensaje-exito");
-            break;
-        case "completar":
-            mensajeDiv.textContent = resultado.canonicosAgregados?.length === 0
-                ? "LA BASE YA ESTÁ COMPLETA"
-                : `BASE COMPLETADA CON ${resultado.canonicosAgregados.length} CANÓNICOS`;
-            mensajeDiv.classList.add("mensaje-exito");
-            break;
-        case "ortogonalizar":
-            mensajeDiv.textContent = "BASE ORTOGONAL";
-            mensajeDiv.classList.add("mensaje-exito");
-            break;
+    if (esError) {
+        mensajeDiv.textContent = resultado.mensaje;
+        mensajeDiv.classList.add("mensaje-error");
+    } else {
+        switch (operacion) {
+            case "li":
+                mensajeDiv.textContent = resultado.esLI ? "LINEALMENTE INDEPENDIENTE" : "LINEALMENTE DEPENDIENTE";
+                mensajeDiv.classList.add(resultado.esLI ? "mensaje-exito" : "mensaje-error");
+                break;
+            case "pertenecer":
+                mensajeDiv.textContent = resultado.pertenece ? "EL VECTOR PERTENECE AL ℒ(V)" : "EL VECTOR NO PERTENECE A ℒ(V)";
+                mensajeDiv.classList.add(resultado.pertenece ? "mensaje-exito" : "mensaje-error");
+                break;
+            case "base":
+                mensajeDiv.textContent = resultado.columnasEliminadas?.length === 0
+                    ? "EL CONJUNTO YA ES UNA BASE"
+                    : `BASE ENCONTRADA: ${resultado.base.length} VECTORES`;
+                mensajeDiv.classList.add("mensaje-exito");
+                break;
+            case "completar":
+                mensajeDiv.textContent = resultado.canonicosAgregados?.length === 0
+                    ? "LA BASE YA ESTÁ COMPLETA"
+                    : `BASE COMPLETADA CON ${resultado.canonicosAgregados.length} CANÓNICOS`;
+                mensajeDiv.classList.add("mensaje-exito");
+                break;
+            case "ortogonalizar":
+                mensajeDiv.textContent = "BASE ORTOGONAL";
+                mensajeDiv.classList.add("mensaje-exito");
+                break;
+        }
     }
     content.appendChild(mensajeDiv);
 
-    if (operacion === "base" && resultado.base && resultado.base.length > 0) {
-        if (resultado.columnasEliminadas?.length > 0) {
-            const p = document.createElement("p");
-            p.className = "vectores-eliminados";
-            p.textContent = `Vectores eliminados: ${resultado.columnasEliminadas.map(c => c + 1).join(", ")}`;
-            content.appendChild(p);
+    if (!esError) {
+        if (operacion === "base" && resultado.base && resultado.base.length > 0) {
+            if (resultado.columnasEliminadas?.length > 0) {
+                const p = document.createElement("p");
+                p.className = "vectores-eliminados";
+                p.textContent = `Vectores eliminados: ${resultado.columnasEliminadas.map(c => c + 1).join(", ")}`;
+                content.appendChild(p);
+            }
+
+            const baseContainer = document.createElement("div");
+            baseContainer.className = "base-container";
+
+            const baseTitle = document.createElement("p");
+            baseTitle.className = "base-title";
+            baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
+            baseContainer.appendChild(baseTitle);
+
+            const conjuntoDiv = document.createElement("div");
+            conjuntoDiv.className = "conjunto-container";
+
+            const wLabel = document.createElement("span");
+            wLabel.className = "conjunto-llave-abierta";
+            wLabel.textContent = "W = {";
+            conjuntoDiv.appendChild(wLabel);
+
+            resultado.base.forEach((vector, idx) => {
+                const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+                const vectorSpan = document.createElement("span");
+                vectorSpan.className = "vector-item";
+                vectorSpan.textContent = `(${vectorStr})`;
+                conjuntoDiv.appendChild(vectorSpan);
+                if (idx < resultado.base.length - 1) {
+                    const comma = document.createElement("span");
+                    comma.className = "vector-comma";
+                    comma.textContent = ",";
+                    conjuntoDiv.appendChild(comma);
+                }
+            });
+
+            const closeBrace = document.createElement("span");
+            closeBrace.className = "conjunto-llave-cerrada";
+            closeBrace.textContent = "}";
+            conjuntoDiv.appendChild(closeBrace);
+
+            baseContainer.appendChild(conjuntoDiv);
+            content.appendChild(baseContainer);
         }
 
-        const baseContainer = document.createElement("div");
-        baseContainer.className = "base-container";
+        if (operacion === "completar" && resultado.baseCompleta && resultado.baseCompleta.length > 0) {
+            const baseCompletaContainer = document.createElement("div");
+            baseCompletaContainer.className = "base-completa-container";
 
-        const baseTitle = document.createElement("p");
-        baseTitle.className = "base-title";
-        baseTitle.textContent = "BASE DEL ESPACIO VECTORIAL";
-        baseContainer.appendChild(baseTitle);
+            const title = document.createElement("p");
+            title.className = "base-completa-title";
+            title.textContent = resultado.canonicosAgregados?.length === 0
+                ? "CONJUNTO ORIGINAL (YA ERA BASE)"
+                : "NUEVO CONJUNTO (BASE COMPLETADA)";
+            baseCompletaContainer.appendChild(title);
 
-        const conjuntoDiv = document.createElement("div");
-        conjuntoDiv.className = "conjunto-container";
+            const conjuntoDiv = document.createElement("div");
+            conjuntoDiv.className = "base-completa-conjunto";
 
-        const wLabel = document.createElement("span");
-        wLabel.className = "conjunto-llave-abierta";
-        wLabel.textContent = "W = {";
-        conjuntoDiv.appendChild(wLabel);
+            const wLabel = document.createElement("span");
+            wLabel.className = "base-completa-label";
+            wLabel.textContent = "W = {";
+            conjuntoDiv.appendChild(wLabel);
 
-        resultado.base.forEach((vector, idx) => {
-            const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
-            const vectorSpan = document.createElement("span");
-            vectorSpan.className = "vector-item";
-            vectorSpan.textContent = `(${vectorStr})`;
-            conjuntoDiv.appendChild(vectorSpan);
-            if (idx < resultado.base.length - 1) {
-                const comma = document.createElement("span");
-                comma.className = "vector-comma";
-                comma.textContent = ",";
-                conjuntoDiv.appendChild(comma);
+            resultado.baseCompleta.forEach((vector, idx) => {
+                const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
+                const esCanonico = resultado.canonicosAgregados?.includes(idx - (resultado.baseOriginal || []).length);
+                const vectorSpan = document.createElement("span");
+                vectorSpan.className = `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`;
+                vectorSpan.textContent = `(${vectorStr})`;
+                conjuntoDiv.appendChild(vectorSpan);
+                if (idx < resultado.baseCompleta.length - 1) {
+                    const comma = document.createElement("span");
+                    comma.className = "base-completa-comma";
+                    comma.textContent = ",";
+                    conjuntoDiv.appendChild(comma);
+                }
+            });
+
+            const closeBrace = document.createElement("span");
+            closeBrace.className = "base-completa-brace";
+            closeBrace.textContent = "}";
+            conjuntoDiv.appendChild(closeBrace);
+
+            baseCompletaContainer.appendChild(conjuntoDiv);
+
+            if (resultado.canonicosAgregados?.length > 0) {
+                const infoBox = document.createElement("div");
+                infoBox.className = "base-completa-info";
+                infoBox.innerHTML = `
+                    <span class="base-completa-info-text">Se agregaron los canónicos:</span>
+                    <span class="base-completa-info-canonicos">
+                        ${resultado.canonicosAgregados.map(i => `e${i + 1} = ${crearVectorCanonicoTexto(resultado.dimension, i)}`).join(", ")}
+                    </span>
+                `;
+                baseCompletaContainer.appendChild(infoBox);
             }
-        });
 
-        const closeBrace = document.createElement("span");
-        closeBrace.className = "conjunto-llave-cerrada";
-        closeBrace.textContent = "}";
-        conjuntoDiv.appendChild(closeBrace);
-
-        baseContainer.appendChild(conjuntoDiv);
-        content.appendChild(baseContainer);
-    }
-
-    if (operacion === "completar" && resultado.baseCompleta && resultado.baseCompleta.length > 0) {
-        const baseCompletaContainer = document.createElement("div");
-        baseCompletaContainer.className = "base-completa-container";
-
-        const title = document.createElement("p");
-        title.className = "base-completa-title";
-        title.textContent = resultado.canonicosAgregados?.length === 0
-            ? "CONJUNTO ORIGINAL (YA ERA BASE)"
-            : "NUEVO CONJUNTO (BASE COMPLETADA)";
-        baseCompletaContainer.appendChild(title);
-
-        const conjuntoDiv = document.createElement("div");
-        conjuntoDiv.className = "base-completa-conjunto";
-
-        const wLabel = document.createElement("span");
-        wLabel.className = "base-completa-label";
-        wLabel.textContent = "W = {";
-        conjuntoDiv.appendChild(wLabel);
-
-        resultado.baseCompleta.forEach((vector, idx) => {
-            const vectorStr = vector.map(v => Auxiliares.fraccionToString(v)).join(", ");
-            const esCanonico = resultado.canonicosAgregados?.includes(idx - (resultado.baseOriginal || []).length);
-            const vectorSpan = document.createElement("span");
-            vectorSpan.className = `base-completa-vector ${esCanonico ? 'base-completa-vector-nuevo' : 'base-completa-vector-original'}`;
-            vectorSpan.textContent = `(${vectorStr})`;
-            conjuntoDiv.appendChild(vectorSpan);
-            if (idx < resultado.baseCompleta.length - 1) {
-                const comma = document.createElement("span");
-                comma.className = "base-completa-comma";
-                comma.textContent = ",";
-                conjuntoDiv.appendChild(comma);
-            }
-        });
-
-        const closeBrace = document.createElement("span");
-        closeBrace.className = "base-completa-brace";
-        closeBrace.textContent = "}";
-        conjuntoDiv.appendChild(closeBrace);
-
-        baseCompletaContainer.appendChild(conjuntoDiv);
-
-        if (resultado.canonicosAgregados?.length > 0) {
-            const infoBox = document.createElement("div");
-            infoBox.className = "base-completa-info";
-            infoBox.innerHTML = `
-                <span class="base-completa-info-text">Se agregaron los canónicos:</span>
-                <span class="base-completa-info-canonicos">
-                    ${resultado.canonicosAgregados.map(i => `e${i + 1} = ${crearVectorCanonicoTexto(resultado.dimension, i)}`).join(", ")}
-                </span>
-            `;
-            baseCompletaContainer.appendChild(infoBox);
+            content.appendChild(baseCompletaContainer);
         }
-
-        content.appendChild(baseCompletaContainer);
     }
 
     section.appendChild(content);
