@@ -531,7 +531,7 @@ function manejarKeydown(e) {
 
     const target = e.target;
 
-    const navigationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'Tab', 'Escape', 'Backspace'];
+    const navigationKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'Enter', 'Tab', 'Escape', 'Backspace', 'Delete'];
     if (navigationKeys.includes(e.key)) {
         if (e.key === ' ' || e.key === 'Enter' || e.key.startsWith('Arrow')) {
             e.preventDefault();
@@ -649,7 +649,7 @@ function manejarKeydownSpan(e, table, span) {
     // NUEVO: Ctrl+Enter para calcular
     if (e.ctrlKey && e.key === 'Enter') {
         e.preventDefault();
-        const btnCalcular = document.getElementById("btnCalcularEV");
+        const btnCalcular = document.getElementById("btnCalcular");
         if (btnCalcular && !btnCalcular.disabled) {
             btnCalcular.click();
         }
@@ -674,16 +674,12 @@ function manejarKeydownSpan(e, table, span) {
             break;
 
         case 'Backspace':
+        case 'Delete':
             e.preventDefault();
             span.setAttribute('data-value', '');
             span.innerHTML = '';
             span.textContent = '';
-            if (colIndex > 0) {
-                enfocarCelda(rowIndex, colIndex - 1);
-            } else if (rowIndex > 0) {
-                const prevRow = table.rows[rowIndex - 1];
-                enfocarCelda(rowIndex - 1, prevRow.cells.length - 1);
-            }
+            revisarBorradoEstructural(table, rowIndex, colIndex);
             setTimeout(() => syncTableToFileData(), 100);
             break;
 
@@ -738,52 +734,55 @@ function estructuraEnter(table, input) {
 }
 
 function estructuraBackspace(e, table, input) {
-    const minRows = parseInt(table.dataset.minRows) || 1;
-    const minCols = parseInt(table.dataset.minCols) || 1;
-    const currentOp = getCurrentOperation();
-
     const cell = input.closest('td');
     const row = cell.parentElement;
     const rowIndex = row.rowIndex;
     const colIndex = cell.cellIndex;
 
-    if (e.key === 'Backspace' && input.value === "") {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && input.value === "") {
         e.preventDefault();
         const emptySpan = crearSpanCelda("", rowIndex, colIndex);
         input.replaceWith(emptySpan);
         actualizarCoordenadasDesdeElemento(emptySpan);
-
-        let prevRowIndex = rowIndex;
-        let prevColIndex = colIndex - 1;
-        if (colIndex > 0) {
-            prevColIndex = colIndex - 1;
-            prevRowIndex = rowIndex;
-        } else if (rowIndex > 0) {
-            prevRowIndex = rowIndex - 1;
-            prevColIndex = table.rows[rowIndex - 1].cells.length - 1;
-        }
-        if (prevColIndex >= 0 && prevRowIndex >= 0) {
-            enfocarCelda(prevRowIndex, prevColIndex);
-        }
-
-        setTimeout(() => {
-            if (table.rows.length > minRows && Auxiliares.filaVacia(table, rowIndex)) {
-                Auxiliares.eliminarFila(table, rowIndex);
-                if (currentOp === "axb") {
-                    actualizarSeparadorGlobal(table);
-                }
-                syncTableToFileData();
-                return;
-            }
-            if (table.rows[0].cells.length > minCols && Auxiliares.columnaVacia(table, colIndex)) {
-                Auxiliares.eliminarColumna(table, colIndex);
-                if (currentOp === "axb") {
-                    actualizarSeparadorGlobal(table);
-                }
-            }
-            syncTableToFileData();
-        }, 0);
+        revisarBorradoEstructural(table, rowIndex, colIndex);
     }
+}
+
+function revisarBorradoEstructural(table, rowIndex, colIndex) {
+    const minRows = parseInt(table.dataset.minRows) || 1;
+    const minCols = parseInt(table.dataset.minCols) || 1;
+    const currentOp = getCurrentOperation();
+
+    setTimeout(() => {
+        let targetRow = rowIndex;
+        let targetCol = colIndex;
+
+        const puedeBorrarFila = table.rows.length > minRows && Auxiliares.filaVacia(table, rowIndex);
+        if (puedeBorrarFila) {
+            Auxiliares.eliminarFila(table, rowIndex);
+            targetRow = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
+            if (currentOp === "axb") actualizarSeparadorGlobal(table);
+        }
+
+        const puedeBorrarColumna = table.rows[0]?.cells.length > minCols && Auxiliares.columnaVacia(table, colIndex);
+        if (puedeBorrarColumna) {
+            Auxiliares.eliminarColumna(table, colIndex);
+            targetCol = Math.max(0, Math.min(colIndex - 1, table.rows[0].cells.length - 1));
+            if (currentOp === "axb") actualizarSeparadorGlobal(table);
+        }
+
+        if (!puedeBorrarFila && !puedeBorrarColumna) {
+            if (colIndex > 0) {
+                targetCol = colIndex - 1;
+            } else if (rowIndex > 0) {
+                targetRow = rowIndex - 1;
+                targetCol = table.rows[targetRow].cells.length - 1;
+            }
+        }
+
+        enfocarCelda(targetRow, targetCol);
+        syncTableToFileData();
+    }, 0);
 }
 
 export function ajustarAnchoColumna(table, colIndex) {
