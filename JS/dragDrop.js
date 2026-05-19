@@ -415,6 +415,9 @@ export function initDragAndDrop() {
         preventDefaults(e);
         dragCounter = 0;
         dropZone.classList.remove('active');
+
+        // Si el módulo de espacios vectoriales está activo, este manejador no debe tocar el archivo.
+        if (document.getElementById("btnCalcularEV")) return;
         
         const files = e.dataTransfer.files;
         if (files.length === 0) return;
