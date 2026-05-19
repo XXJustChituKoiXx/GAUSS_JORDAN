@@ -218,7 +218,7 @@ export function inputToSpan(input) {
             const table = span.closest('#inputTable');
             if (table) {
                 setTimeout(() => {
-                    ajustarAnchoColumnaEV(table, col + 1);
+                    ajustarTodasColumnasEV(table);
                     actualizarBotonCalcularEV();
                 }, 10);
             }
