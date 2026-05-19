@@ -10,6 +10,8 @@ const aside = document.getElementById("aside");
 const modal = document.getElementById("helpModal");
 const modalClose = document.querySelector(".modal-close");
 const btnCloseModal = document.querySelector(".btn-close-modal");
+const tutorialBtn = document.getElementById("tutorialBtn");
+const tutorialContent = document.getElementById("tutorialContent");
 
 let currentModule = "matrices";
 
@@ -20,6 +22,9 @@ function closeModal() { modal.classList.remove("show"); }
 document.getElementById("helpBtn")?.addEventListener("click", openModal);
 modalClose?.addEventListener("click", closeModal);
 btnCloseModal?.addEventListener("click", closeModal);
+tutorialBtn?.addEventListener("click", () => {
+    tutorialContent?.classList.toggle("show");
+});
 modal?.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && modal?.classList.contains("show")) closeModal();
