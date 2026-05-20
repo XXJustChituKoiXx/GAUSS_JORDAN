@@ -1772,3 +1772,114 @@ kbd {
         min-width: 150px;
     }
 }
+
+
+/* ===== AJUSTES V4 - VECTORES Y MODAL DE TUTORIALES ===== */
+.ev-vector-table {
+    border-collapse: separate !important;
+    border-spacing: 18px 22px !important;
+}
+
+.ev-vector-table tr {
+    height: 82px;
+}
+
+.ev-vector-table td {
+    vertical-align: middle !important;
+}
+
+.ev-vector-table td:has(.cell-span),
+.ev-vector-table td:has(.cell-input) {
+    height: 64px !important;
+}
+
+.ev-vector-table .cell-span,
+.ev-vector-table .cell-input {
+    height: 64px !important;
+    min-height: 64px !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.ev-vector-table td:has(.paren-left),
+.ev-vector-table td:has(.paren-right) {
+    width: 58px !important;
+    min-width: 58px !important;
+    padding: 0 12px !important;
+    vertical-align: middle !important;
+}
+
+.ev-vector-table .paren-left,
+.ev-vector-table .paren-right {
+    height: 74px !important;
+    min-height: 74px !important;
+    font-size: 4rem !important;
+    line-height: 1 !important;
+    transform: scaleY(1.08) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 8px !important;
+}
+
+.ev-vector-table .vector-componente-comma-cell {
+    width: 22px !important;
+    min-width: 22px !important;
+}
+
+.ev-vector-table .vector-componente-comma {
+    min-height: 64px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ev-vector-separator-row {
+    height: 34px !important;
+}
+
+.ev-vector-separator {
+    border-top: 2px solid var(--primary);
+    width: calc(100% - 120px);
+    margin: 12px auto;
+}
+
+.tutorial-modal-content {
+    max-width: 620px;
+}
+
+.tutorial-modal-content .tutorial-content {
+    margin-top: 0;
+}
+
+.tutorial-modal-content .tutorial-video-box {
+    width: 100%;
+}
+
+.tutorial-modal-content .video-placeholder {
+    min-height: 180px;
+}
+
+@media (max-width: 768px) {
+    .ev-vector-table {
+        border-spacing: 12px 18px !important;
+    }
+
+    .ev-vector-table td:has(.paren-left),
+    .ev-vector-table td:has(.paren-right) {
+        width: 46px !important;
+        min-width: 46px !important;
+        padding: 0 8px !important;
+    }
+
+    .ev-vector-table .paren-left,
+    .ev-vector-table .paren-right {
+        height: 66px !important;
+        min-height: 66px !important;
+        font-size: 3.45rem !important;
+        margin: 0 6px !important;
+    }
+
+    .ev-vector-separator {
+        width: calc(100% - 70px);
+    }
+}
