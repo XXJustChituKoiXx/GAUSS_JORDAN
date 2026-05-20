@@ -8,26 +8,35 @@ import { desconfigurarEventosMatri } from "./eventos_matri.js";
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
 const modal = document.getElementById("helpModal");
-const modalClose = document.querySelector(".modal-close");
+const modalClose = modal?.querySelector(".modal-close");
 const btnCloseModal = document.getElementById("btnEntendidoModal");
 const tutorialBtn = document.getElementById("tutorialBtn");
-const tutorialContent = document.getElementById("tutorialContent");
+const tutorialModal = document.getElementById("tutorialModal");
+const tutorialModalClose = document.getElementById("tutorialModalClose");
+const btnCerrarTutorialModal = document.getElementById("btnCerrarTutorialModal");
 
 let currentModule = "matrices";
 
 // ========== MODAL ==========
-function openModal() { modal.classList.add("show"); }
-function closeModal() { modal.classList.remove("show"); }
+function openModal() { modal?.classList.add("show"); }
+function closeModal() { modal?.classList.remove("show"); }
+function openTutorialModal() { tutorialModal?.classList.add("show"); }
+function closeTutorialModal() { tutorialModal?.classList.remove("show"); }
 
 document.getElementById("helpBtn")?.addEventListener("click", openModal);
 modalClose?.addEventListener("click", closeModal);
 btnCloseModal?.addEventListener("click", closeModal);
 tutorialBtn?.addEventListener("click", () => {
-    tutorialContent?.classList.toggle("show");
+    closeModal();
+    openTutorialModal();
 });
 modal?.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+tutorialModal?.addEventListener("click", (e) => { if (e.target === tutorialModal) closeTutorialModal(); });
+tutorialModalClose?.addEventListener("click", closeTutorialModal);
+btnCerrarTutorialModal?.addEventListener("click", closeTutorialModal);
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && modal?.classList.contains("show")) closeModal();
+    if (e.key === "Escape" && tutorialModal?.classList.contains("show")) closeTutorialModal();
 });
 
 // ========== CONSTRUIR ASIDE ==========
