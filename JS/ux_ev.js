@@ -268,6 +268,7 @@ function construirFilasVectores() {
 
         // Celda de etiqueta
         const labelCell = document.createElement("td");
+        labelCell.className = "ev-vector-label-cell";
         const label = esVectorB ? "β =" : `α<sub>${i + 1}</sub> =`;
         labelCell.innerHTML = `<span class="vector-label">${label}</span>`;
         labelCell.style.pointerEvents = "none";
@@ -276,6 +277,7 @@ function construirFilasVectores() {
 
         // Paréntesis izquierdo
         const leftParenCell = document.createElement("td");
+        leftParenCell.className = "ev-paren-cell ev-paren-left-cell";
         leftParenCell.style.cssText = "padding: 0; vertical-align: middle;";
         const leftParen = document.createElement("div");
         leftParen.className = "paren-left";
@@ -286,6 +288,7 @@ function construirFilasVectores() {
         // Celdas de componentes
         for (let j = 0; j < numComponentes; j++) {
             const cell = document.createElement("td");
+            cell.className = "ev-vector-input-cell";
             const span = crearSpanCelda(vector[j] || "", i, j);
             cell.appendChild(span);
             row.appendChild(cell);
@@ -301,6 +304,7 @@ function construirFilasVectores() {
 
         // Paréntesis derecho
         const rightParenCell = document.createElement("td");
+        rightParenCell.className = "ev-paren-cell ev-paren-right-cell";
         rightParenCell.style.cssText = "padding: 0; vertical-align: middle;";
         const rightParen = document.createElement("div");
         rightParen.className = "paren-right";
