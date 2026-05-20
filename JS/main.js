@@ -1,5 +1,5 @@
 import { inicializarMatriz, cambiarModo } from "./ux_matrices.js";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=5";
 import { initDragAndDrop, initTableSync } from "./dragDrop.js";
 import UI from "./ui.js";
 import { desconfigurarEventosEV } from "./eventos_ev.js";
@@ -26,7 +26,9 @@ function closeTutorialModal() { tutorialModal?.classList.remove("show"); }
 document.getElementById("helpBtn")?.addEventListener("click", openModal);
 modalClose?.addEventListener("click", closeModal);
 btnCloseModal?.addEventListener("click", closeModal);
-tutorialBtn?.addEventListener("click", () => {
+tutorialBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     closeModal();
     openTutorialModal();
 });
