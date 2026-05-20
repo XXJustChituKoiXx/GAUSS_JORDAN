@@ -1627,3 +1627,148 @@ kbd {
         font-size: 2.2rem;
     }
 }
+
+
+/* ===== REFINAMIENTO VISUAL SOLICITADO ===== */
+.result-matrix-container {
+    padding: 0.35rem 1.25rem;
+    align-items: center;
+}
+
+.result-matrix-container::before,
+.result-matrix-container::after {
+    top: 0.25rem;
+    bottom: 0.25rem;
+}
+
+.result-table {
+    border-spacing: 12px 6px;
+}
+
+.result-table td {
+    padding: 4px 14px;
+    line-height: 1.15;
+}
+
+.resultado-matriz-wrapper {
+    padding: 0.65rem 0.9rem;
+    align-items: center;
+}
+
+#inputTable td:has(.paren-left),
+#inputTable td:has(.paren-right) {
+    width: 34px;
+}
+
+.paren-left,
+.paren-right {
+    min-height: 68px;
+    font-size: 4.4rem;
+    font-weight: 500;
+    line-height: 0.8;
+    transform: scaleY(1.22);
+    transform-origin: center;
+    color: var(--text-secondary);
+}
+
+.vector-label {
+    font-size: 1.4rem;
+}
+
+.vector-label sub {
+    font-size: 0.7em;
+    vertical-align: sub;
+}
+
+.result-table .frac,
+.vector-component .frac,
+.vector-visual .frac {
+    min-width: auto;
+}
+
+.vector-visual {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.vector-paren {
+    color: inherit;
+    font-size: 1.85rem;
+    line-height: 1;
+}
+
+.vector-component {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+}
+
+.vector-component-comma,
+.base-completa-comma,
+.vector-comma {
+    font-size: 1.1rem;
+    margin: 0 0.1rem 0 0;
+}
+
+.frac-vector {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    min-width: 1.8rem;
+    font-size: 0.95em;
+    color: inherit;
+}
+
+.frac-vector .top {
+    border-bottom: 1px solid currentColor;
+    padding: 0 0.16rem 0.12rem;
+}
+
+.frac-vector .bottom {
+    padding-top: 0.12rem;
+}
+
+.tutorial-section {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+#tutorialContent {
+    margin-top: 0;
+}
+
+.modal-footer-dual {
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.modal-footer-dual .btn-close-modal {
+    min-width: 180px;
+    text-align: center;
+}
+
+.file-format-modal-content {
+    max-width: 560px;
+}
+
+.file-format-modal-content .modal-body p {
+    color: var(--text-primary);
+    margin: 0.5rem 0;
+    line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+    .paren-left,
+    .paren-right {
+        min-height: 60px;
+        font-size: 3.7rem;
+    }
+
+    .modal-footer-dual .btn-close-modal {
+        min-width: 150px;
+    }
+}
