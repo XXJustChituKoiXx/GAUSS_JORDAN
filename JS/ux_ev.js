@@ -60,7 +60,8 @@ export function inicializarEV(article, modo, preserveState = false) {
     const wrapperVectores = UI.createDiv("wrapperVectores");
 
     tablaVectores = UI.createTable("inputTable");
-    tablaVectores.style.borderSpacing = "6px";
+    tablaVectores.className = "ev-vector-table";
+    tablaVectores.style.borderSpacing = "14px 18px";
 
     if (preserveState && savedVectoresState && savedVectoresState.length > 0) {
         vectoresHorizontales = JSON.parse(JSON.stringify(savedVectoresState));
@@ -314,9 +315,9 @@ function construirFilasVectores() {
             const separatorRow = document.createElement("tr");
             const separatorCell = document.createElement("td");
             separatorCell.colSpan = (numComponentes * 2) + 2;
-            separatorCell.style.borderTop = "2px solid var(--primary)";
-            separatorCell.style.margin = "6px 0";
             separatorCell.style.padding = "0";
+            separatorCell.innerHTML = `<div class="ev-vector-separator"></div>`;
+            separatorRow.className = "ev-vector-separator-row";
             separatorRow.appendChild(separatorCell);
             tablaVectores.appendChild(separatorRow);
         }
