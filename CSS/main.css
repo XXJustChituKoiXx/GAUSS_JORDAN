@@ -2033,3 +2033,30 @@ kbd {
         min-width: 180px !important;
     }
 }
+
+
+/* ===== AJUSTES V6 - CENTRADO FINO DE CAJAS RESPECTO A PARÉNTESIS ===== */
+.ev-vector-input-cell,
+.ev-vector-table .vector-componente-comma-cell {
+    position: relative !important;
+    top: 4px !important;
+}
+
+.ev-vector-input-cell .cell-span,
+.ev-vector-input-cell .cell-input,
+.ev-vector-table .vector-componente-comma {
+    transform: translateY(0) !important;
+}
+
+.ev-paren-cell .paren-left,
+.ev-paren-cell .paren-right {
+    align-items: center !important;
+    line-height: 0.88 !important;
+}
+
+@media (max-width: 768px) {
+    .ev-vector-input-cell,
+    .ev-vector-table .vector-componente-comma-cell {
+        top: 3px !important;
+    }
+}
