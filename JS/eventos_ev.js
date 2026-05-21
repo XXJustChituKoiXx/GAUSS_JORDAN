@@ -4,6 +4,7 @@ let currentTable = null;
 let currentArticle = null;
 let callbacks = {};
 let isProcessingBackspace = false;
+let beforeInputHandler = null;
 
 // Para navegación - almacenan referencias a la celda actual
 let currentCell = null;
@@ -189,7 +190,9 @@ export function configurarEventosEV(article, table, cbs = {}) {
     currentArticle.addEventListener('keydown', manejarKeydown);
     currentArticle.addEventListener('click', manejarClick);
     currentArticle.addEventListener('input', manejarInput);
+    beforeInputHandler = (e) => manejarBeforeInput(e);
     currentArticle.addEventListener('focusout', manejarFocusout);
+    currentArticle.addEventListener('beforeinput', beforeInputHandler);
     window.addEventListener('keydown', prevenirScrollEspacio);
 }
 
@@ -199,6 +202,7 @@ export function desconfigurarEventosEV() {
         currentArticle.removeEventListener('click', manejarClick);
         currentArticle.removeEventListener('input', manejarInput);
         currentArticle.removeEventListener('focusout', manejarFocusout);
+        currentArticle.removeEventListener('beforeinput', beforeInputHandler);
     }
     window.removeEventListener('keydown', prevenirScrollEspacio);
     currentTable = null;
@@ -361,11 +365,36 @@ function manejarClick(e) {
     }
 }
 
+function manejarBeforeInput(e) {
+    const input = e.target;
+    if (!input || !input.classList.contains('cell-input')) return;
+
+    const data = e.data || "";
+    const esEspacioMovil = e.inputType === 'insertText' && /\s/.test(data);
+    if (!esEspacioMovil) return;
+
+    e.preventDefault();
+    actualizarCoordenadasDesdeElemento(input);
+    input.value = input.value.replace(/\s+/g, '');
+    inputToSpan(input);
+
+    if (callbacks.onSpace) callbacks.onSpace(currentRowIndex, currentColIndex);
+    if (callbacks.onSync) callbacks.onSync();
+}
+
 function manejarInput(e) {
     const input = e.target;
     if (!input.classList.contains('cell-input')) return;
 
     let valor = input.value;
+
+    if (/\s/.test(valor)) {
+        input.value = valor.replace(/\s+/g, '');
+        inputToSpan(input);
+        if (callbacks.onSpace) callbacks.onSpace(currentRowIndex, currentColIndex);
+        if (callbacks.onSync) callbacks.onSync();
+        return;
+    }
     
     if (!esEntradaValidaEV(valor)) {
         input.classList.add('cell-error');
