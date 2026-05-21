@@ -1,8 +1,8 @@
 import UI from "./ui.js";
-import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js";
+import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js?v=11";
 import Auxiliares from "./auxiliares.js";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar } from "./calculos.js";
-import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js";
+import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=11";
 import { crearSpanCelda, setEVMode, ajustarTodasColumnasEV } from "./celdas.js";
 
 let currentOperation = "li";
