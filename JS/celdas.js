@@ -162,7 +162,7 @@ export function spanToInput(span) {
     
     if (!isEVMode) {
         setTimeout(() => {
-            import("./dragDrop.js").then(module => {
+            import("./dragDrop.js?v=11").then(module => {
                 module.syncTableToFileData();
             }).catch(() => {});
         }, 50);
