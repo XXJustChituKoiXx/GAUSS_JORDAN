@@ -42,6 +42,31 @@ export function simplificar(num, den) {
     return [n, d];
 }
 
+
+// Validar que un texto represente un número o fracción usable en la matriz
+export function esValorNumericoValido(valor, permitirVacio = true) {
+    if (valor === null || valor === undefined) return permitirVacio;
+
+    const str = String(valor).trim();
+    if (str === "") return permitirVacio;
+
+    const numero = "-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)";
+    const patron = new RegExp(`^${numero}(?:/${numero})?$`);
+
+    if (!patron.test(str)) return false;
+
+    if (str.includes("/")) {
+        const partes = str.split("/");
+        if (partes.length !== 2) return false;
+
+        const den = Number(partes[1]);
+        if (Number.isNaN(den) || den === 0) return false;
+    }
+
+    const valorNumerico = str.includes("/") ? Number(str.split("/")[0]) : Number(str);
+    return !Number.isNaN(valorNumerico) && Number.isFinite(valorNumerico);
+}
+
 // Convertir string "a/b", "a/", "/b", "a" a {num, den}
 export function parsearFraccion(valor) {
     if (valor === "" || valor === null || valor === undefined) {
@@ -175,6 +200,7 @@ export function normalizarValorTexto(valor) {
         if (str.includes("/")) {
             const partes = str.split("/");
             if (partes.length !== 2) return str;
+            if (!esValorNumericoValido(str, true)) return str;
 
             const fraccion = parsearFraccion(str);
             const [num, den] = simplificar(fraccion.num, fraccion.den);
@@ -182,6 +208,8 @@ export function normalizarValorTexto(valor) {
             if (num === 0) return "0";
             return den === 1 ? `${num}` : `${num}/${den}`;
         }
+
+        if (!esValorNumericoValido(str, true)) return str;
 
         const numero = Number(str);
         if (Number.isNaN(numero)) return str;
@@ -407,6 +435,11 @@ export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
 
         for (let j = 0; j < numVectores; j++) {
             const valor = vectores[j][i] || "0";
+
+            if (!esValorNumericoValido(valor, true)) {
+                throw new Error(`Valor inválido en α${j + 1}, componente ${i + 1}: "${valor}"`);
+            }
+
             fila.push(parsearFraccion(valor));
         }
 
@@ -439,6 +472,7 @@ const auxiliares = {
     vectorToString,
     simplificar,
     parsearFraccion,
+    esValorNumericoValido,
     multiplicarFracciones,
     sumarFraccionesObj,
     restarFracciones,
