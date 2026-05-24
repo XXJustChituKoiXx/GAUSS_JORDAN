@@ -1,9 +1,9 @@
 import UI from "./ui.js";
-import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js?v=11";
-import Auxiliares from "./auxiliares.js";
+import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js?v=13";
+import Auxiliares from "./auxiliares.js?v=13";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar } from "./calculos.js";
-import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=11";
-import { crearSpanCelda, setEVMode, ajustarTodasColumnasEV } from "./celdas.js";
+import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=13";
+import { crearSpanCelda, setEVMode, ajustarTodasColumnasEV, actualizarBotonCalcularEV, validarCamposEV } from "./celdas.js?v=13";
 
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
@@ -12,6 +12,13 @@ let currentRow = 0;
 let currentCol = 0;
 let savedVectoresState = null;
 
+function validarEstadoActualEV() {
+    if (!tablaVectores) return false;
+    const hayErrores = validarCamposEV(tablaVectores);
+    actualizarBotonCalcularEV();
+    return hayErrores;
+}
+
 export function cambiarOperacionEV(article, modo) {
     guardarVectoresDesdeTabla();
     if (vectoresHorizontales && vectoresHorizontales.length > 0) {
@@ -19,6 +26,7 @@ export function cambiarOperacionEV(article, modo) {
     }
     currentOperation = modo;
     inicializarEV(article, modo, true);
+    setTimeout(() => validarEstadoActualEV(), 30);
 }
 
 export function inicializarEV(article, modo, preserveState = false) {
@@ -36,6 +44,7 @@ export function inicializarEV(article, modo, preserveState = false) {
 
         construirFilasVectores();
         sincronizarMatrizDesdeVectores();
+        setTimeout(() => validarEstadoActualEV(), 20);
 
         // Enfocar la primera celda
         setTimeout(() => {
@@ -128,31 +137,39 @@ export function inicializarEV(article, modo, preserveState = false) {
         guardarVectoresDesdeTabla();
         sincronizarMatrizDesdeVectores();
 
-        const esPertenecer = currentOperation === "pertenecer";
-        const matriz = Auxiliares.parsearVectoresAMatriz(vectoresHorizontales, !esPertenecer);
+        if (validarEstadoActualEV()) {
+            mostrarResultadoEV({
+                esError: true,
+                mensaje: "Corrige los valores marcados en rojo antes de calcular."
+            }, currentOperation);
+            return;
+        }
 
         let resultado;
 
-        switch (currentOperation) {
-            case "li":
-                resultado = clasificarLIoLD(matriz);
-                break;
-            case "pertenecer":
-                resultado = calcularPertenencia(matriz);
-                break;
-            case "base":
-                resultado = hallarBase(matriz);
-                break;
-            case "completar":
-                resultado = completarBase(matriz);
-                break;
-            case "ortogonalizar":
-                try {
+        try {
+            const esPertenecer = currentOperation === "pertenecer";
+            const matriz = Auxiliares.parsearVectoresAMatriz(vectoresHorizontales, !esPertenecer);
+
+            switch (currentOperation) {
+                case "li":
+                    resultado = clasificarLIoLD(matriz);
+                    break;
+                case "pertenecer":
+                    resultado = calcularPertenencia(matriz);
+                    break;
+                case "base":
+                    resultado = hallarBase(matriz);
+                    break;
+                case "completar":
+                    resultado = completarBase(matriz);
+                    break;
+                case "ortogonalizar":
                     resultado = ortogonalizar(matriz);
-                } catch (error) {
-                    resultado = { esError: true, mensaje: error.message };
-                }
-                break;
+                    break;
+            }
+        } catch (error) {
+            resultado = { esError: true, mensaje: error.message };
         }
 
         mostrarResultadoEV(resultado, currentOperation);
@@ -250,6 +267,8 @@ export function inicializarEV(article, modo, preserveState = false) {
         }
     });
 
+    setTimeout(() => validarEstadoActualEV(), 30);
+
     initDragAndDropEV();
 }
 
@@ -338,6 +357,7 @@ function construirFilasVectores() {
         guardarVectoresDesdeTabla();
         agregarNuevoVector(currentRow);
         sincronizarMatrizDesdeVectores();
+        setTimeout(() => validarEstadoActualEV(), 20);
     };
     cellBtn.appendChild(btnAgregar);
     rowBtn.appendChild(cellBtn);
@@ -379,6 +399,10 @@ function construirMatrizColumnas(table) {
             }
 
             valor = Auxiliares.normalizarValorTexto(valor);
+
+            if (valor !== "" && !Auxiliares.esValorNumericoValido(valor, true)) {
+                valor = "";
+            }
 
             if (valor && valor.includes('/')) {
                 const [num, den] = valor.split('/');
@@ -533,6 +557,7 @@ function verificarEliminarFilasColumnas() {
 function sincronizarMatrizDesdeVectores() {
     const matrizTable = document.getElementById("matrizEVTable");
     if (matrizTable) construirMatrizColumnas(matrizTable);
+    setTimeout(() => validarEstadoActualEV(), 10);
 }
 
 function getBotonTexto(modo) {
@@ -578,6 +603,7 @@ function crearVectorCanonicoTexto(dimension, indice) {
 
 
 function limpiarTodoEV() {
+    clearEVFileData();
     const numComp = Math.max(2, vectoresHorizontales[0]?.length || 2);
     if (currentOperation === "pertenecer") {
         vectoresHorizontales = [Array(numComp).fill(""), Array(numComp).fill(""), Array(numComp).fill("")];
@@ -589,6 +615,7 @@ function limpiarTodoEV() {
     sincronizarMatrizDesdeVectores();
     const prev = document.getElementById("resultadoEVSection");
     if (prev) prev.remove();
+    validarEstadoActualEV();
     setTimeout(() => enfocarCelda(0, 0), 30);
 }
 
