@@ -7,11 +7,36 @@ export function setEVMode(enabled) {
     isEVMode = enabled;
 }
 
+function obtenerValorCeldaEditable(celda) {
+    if (!celda) return "";
+    return celda.classList.contains('cell-input')
+        ? celda.value
+        : (celda.getAttribute('data-value') || celda.textContent || "");
+}
+
+// Validar todas las celdas EV y marcar cualquier valor inválido aunque venga de un cambio de función
+export function validarCamposEV(table) {
+    if (!table) return false;
+
+    let hayErrores = false;
+    const celdas = table.querySelectorAll('.cell-span, .cell-input');
+
+    celdas.forEach(celda => {
+        const valor = obtenerValorCeldaEditable(celda);
+        const texto = String(valor || "").trim();
+        const esInvalido = texto !== "" && !Auxiliares.esValorNumericoValido(texto, true);
+
+        celda.classList.toggle('cell-error', esInvalido);
+        if (esInvalido) hayErrores = true;
+    });
+
+    return hayErrores;
+}
+
 // Función para verificar si hay errores en la tabla EV
 export function tieneErroresEV(table) {
     if (!table) return false;
-    const spans = table.querySelectorAll('.cell-span.cell-error');
-    return spans.length > 0;
+    return validarCamposEV(table);
 }
 
 // Función para habilitar/deshabilitar botón calcular en EV
@@ -111,7 +136,7 @@ export function crearSpanCelda(value, row, col) {
     span.style.lineHeight = "1.4";
     span.style.minWidth = "6ch";
 
-    if (valorNormalizado && Auxiliares.esFraccion(valorNormalizado)) {
+    if (valorNormalizado && Auxiliares.esFraccion(valorNormalizado) && Auxiliares.esValorNumericoValido(valorNormalizado, true)) {
         const fraccion = Auxiliares.parsearFraccion(valorNormalizado);
         const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
         const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
@@ -128,6 +153,10 @@ export function crearSpanCelda(value, row, col) {
         span.textContent = valorNormalizado || "";
     }
     
+    if (valorNormalizado !== "" && !Auxiliares.esValorNumericoValido(valorNormalizado, true)) {
+        span.classList.add('cell-error');
+    }
+
     const contentLength = (valorNormalizado || "").length;
     const initialWidth = Math.max(6, contentLength + 1);
     span.style.width = initialWidth + "ch";
@@ -185,8 +214,8 @@ export function inputToSpan(input) {
 
     const span = crearSpanCelda(finalValue, row, col);
     
-    // Preservar clase de error si existía
-    if (input.classList.contains('cell-error')) {
+    // Preservar clase de error si existía o si el valor final no es usable
+    if (input.classList.contains('cell-error') || (finalValue !== "" && !Auxiliares.esValorNumericoValido(finalValue, true))) {
         span.classList.add('cell-error');
     }
     
