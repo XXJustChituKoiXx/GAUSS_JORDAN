@@ -147,6 +147,9 @@ section h2 {
     width: fit-content;
     min-width: fit-content;
     overflow-x: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 /* ===== 4. MATRICES Y TABLAS ===== */
@@ -346,6 +349,11 @@ body.light .diagonal-cell {
 
 #resultSection .result-label {
     color: var(--success);
+}
+
+#resultSection > .result-wrapper {
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ===== 7. BOTONES ===== */
