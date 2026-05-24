@@ -1,9 +1,9 @@
-import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=11";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=11";
-import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=11";
+import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=13";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=13";
+import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=13";
 import UI from "./ui.js";
-import { desconfigurarEventosEV } from "./eventos_ev.js?v=11";
-import { desconfigurarEventosMatri } from "./eventos_matri.js?v=11";
+import { desconfigurarEventosEV } from "./eventos_ev.js?v=13";
+import { desconfigurarEventosMatri } from "./eventos_matri.js?v=13";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
