@@ -121,4 +121,58 @@ describe('Test de Garantia de Algoritmo Gauss-Jordan', () => {
             expect(res[1][res[1].length - 1].num / res[1][res[1].length - 1].den).toBeCloseTo(2);
         });
     });
+
+    // CASOS ESPECÍFICOS PARA EVITAR ERRORES COMO "0-6" EN E.V.
+    describe('Validación de entradas en espacios vectoriales', () => {
+
+        test('Rechaza signos negativos mal colocados.', () => {
+            const casosInvalidos = ["0-6", "4-2", "--6", "6-", "0--6"];
+            casosInvalidos.forEach(input => {
+                expect(Auxiliares.esValorNumericoValido(input, true)).toBe(false);
+            });
+        });
+
+        test('Rechaza fracciones incompletas o con denominador cero.', () => {
+            const casosInvalidos = ["1/0", "0/0", "6/", "/6", "1//2", "1/2/3", "3/-"];
+            casosInvalidos.forEach(input => {
+                expect(Auxiliares.esValorNumericoValido(input, true)).toBe(false);
+            });
+        });
+
+        test('Rechaza puntos decimales mal escritos.', () => {
+            const casosInvalidos = [".", "-.", "3..5", "2.1.4", "1/." ];
+            casosInvalidos.forEach(input => {
+                expect(Auxiliares.esValorNumericoValido(input, true)).toBe(false);
+            });
+        });
+
+        test('Acepta enteros, decimales y fracciones válidas.', () => {
+            const casosValidos = ["0", "-6", "7", "3/4", "-3/4", "3/-4", "0.5", "-.5", ".5"];
+            casosValidos.forEach(input => {
+                expect(Auxiliares.esValorNumericoValido(input, true)).toBe(true);
+            });
+        });
+
+        test('No deja pasar valores inválidos al armado de la matriz.', () => {
+            const vectores = [["7", "0-6"], ["1", "3"]];
+            expect(() => Auxiliares.parsearVectoresAMatriz(vectores, true)).toThrow("Valor inválido");
+        });
+
+        test('Mantiene inválidos al cambiar de operación en E.V.', () => {
+            const vectoresLI = [["7", "0-6"], ["1", "3"]];
+            const vectoresPertenecer = [["7", "0-6"], ["1", "3"], ["4", "-2"]];
+            const vectoresBase = [["7", "0-6"], ["1", "3"]];
+
+            [vectoresLI, vectoresPertenecer, vectoresBase].forEach(vectores => {
+                expect(() => Auxiliares.parsearVectoresAMatriz(vectores, true)).toThrow("Valor inválido");
+            });
+        });
+
+        test('Normalizar no convierte una entrada inválida en cero válido.', () => {
+            const valor = Auxiliares.normalizarValorTexto("0-6");
+            expect(valor).toBe("0-6");
+            expect(Auxiliares.esValorNumericoValido(valor, true)).toBe(false);
+        });
+    });
+
 });
