@@ -1,5 +1,6 @@
 // dragDropEV.js
-import { actualizarBotonCalcularEV } from "./celdas.js";
+import { actualizarBotonCalcularEV } from "./celdas.js?v=13";
+import Auxiliares from "./auxiliares.js?v=13";
 
 let onMatrixLoadCallback = null;
 let evDropListenersAttached = false;
@@ -12,35 +13,7 @@ export function setEVCallbacks(callback) {
 
 // Validar valor de vector
 export function isValidVectorValue(value) {
-    if (!value || value.trim() === "") return true;
-    
-    const trimmed = value.trim();
-    
-    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(trimmed)) return false;
-    if (/[^0-9\-\/\.]/.test(trimmed)) return false;
-    
-    const slashCount = (trimmed.match(/\//g) || []).length;
-    if (slashCount > 1) return false;
-    
-    if (/^\//.test(trimmed)) return false;
-    if (/\/$/.test(trimmed)) return false;
-    
-    if (trimmed.includes('/')) {
-        const slashIndex = trimmed.indexOf('/');
-        const beforeSlash = trimmed.substring(0, slashIndex);
-        const afterSlash = trimmed.substring(slashIndex + 1);
-        
-        if (beforeSlash !== '' && beforeSlash !== '-' && !/^-?\d*\.?\d*$/.test(beforeSlash)) return false;
-        if (afterSlash === '' || afterSlash === '-') return false;
-        if (!/^-?\d*\.?\d*$/.test(afterSlash)) return false;
-        
-        const denom = parseFloat(afterSlash);
-        if (denom === 0) return false;
-    } else {
-        if (trimmed !== '-' && !/^-?\d*\.?\d*$/.test(trimmed)) return false;
-    }
-    
-    return true;
+    return Auxiliares.esValorNumericoValido(value, true);
 }
 
 function limpiarValor(valor) {
