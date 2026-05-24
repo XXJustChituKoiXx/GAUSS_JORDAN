@@ -1,4 +1,5 @@
-import { spanToInput, inputToSpan, crearSpanCelda, ajustarTodasColumnasEV, actualizarBotonCalcularEV } from "./celdas.js";
+import { spanToInput, inputToSpan, crearSpanCelda, ajustarTodasColumnasEV, actualizarBotonCalcularEV } from "./celdas.js?v=13";
+import Auxiliares from "./auxiliares.js?v=13";
 
 let currentTable = null;
 let currentArticle = null;
@@ -13,25 +14,7 @@ let currentColIndex = -1;
 
 function esEntradaValidaEV(valor) {
     if (valor === '' || valor === '-') return true;
-    if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) return false;
-    if (/[^0-9\-\/\.]/.test(valor)) return false;
-    const slashCount = (valor.match(/\//g) || []).length;
-    if (slashCount > 1) return false;
-    if (/^\//.test(valor)) return false;
-    if (/\/$/.test(valor)) return false;
-    if (valor.includes('/')) {
-        const parts = valor.split('/');
-        if (parts.length > 2) return false;
-        const left = parts[0];
-        const right = parts[1] !== undefined ? parts[1] : '';
-        if (left !== '' && left !== '-' && !/^-?\d*\.?\d*$/.test(left)) return false;
-        if (right !== '' && right !== '-' && !/^-?\d*\.?\d*$/.test(right)) return false;
-        const den = parseFloat(right);
-        if (right !== '' && right !== '-' && den === 0) return false;
-    } else {
-        if (valor !== '-' && !/^-?\d*\.?\d*$/.test(valor)) return false;
-    }
-    return true;
+    return Auxiliares.esValorNumericoValido(valor, true);
 }
 
 function obtenerFilasDeVectores() {
