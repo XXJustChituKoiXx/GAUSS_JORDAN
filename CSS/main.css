@@ -477,8 +477,10 @@ body.light .btn-agregar-vector:hover {
 }
 
 /* ===== 8. NAVEGACIÓN ===== */
+/* ===== 8. NAVEGACIÓN ===== */
 .nav-group {
     display: flex;
+    flex-wrap: wrap;
     border: 2px solid var(--primary);
     border-radius: 12px;
     overflow: hidden;
@@ -486,7 +488,8 @@ body.light .btn-agregar-vector:hover {
 }
 
 .nav-group .nav-btn {
-    flex: 1;
+    flex: 1 0 auto;
+    min-width: calc(50% - 0px);
     padding: 0.6rem 0.8rem;
     font-size: 0.85rem;
     font-weight: 600;
@@ -506,6 +509,21 @@ body.light .btn-agregar-vector:hover {
     color: white;
 }
 
+@media (max-width: 768px) {
+    .nav-group .nav-btn {
+        min-width: calc(50% - 0px);
+        font-size: 0.75rem;
+        padding: 0.5rem 0.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-group .nav-btn {
+        min-width: 100%;
+        font-size: 0.7rem;
+        padding: 0.5rem;
+    }
+}
 /* ===== 9. DETERMINANTE ===== */
 .det-content {
     display: flex;
