@@ -1,11 +1,11 @@
 // main.js
-import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=14";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=14";
-import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=14";
-import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=14";
+import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=15";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=15";
+import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=15";
+import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=15";
 import UI from "./ui.js";
-import { desconfigurarEventosEV } from "./eventos_ev.js?v=14";
-import { desconfigurarEventosMatri } from "./eventos_matri.js?v=14";
+import { desconfigurarEventosEV } from "./eventos_ev.js?v=15";
+import { desconfigurarEventosMatri } from "./eventos_matri.js?v=15";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
@@ -133,18 +133,10 @@ function createAsideButton(op, onClick) {
     return li;
 }
 
-function addAsideHeading(title, subtitle = "") {
-    const heading = document.createElement("div");
-    heading.className = "aside-heading";
-    heading.innerHTML = `<span>Funciones</span><strong>${title}</strong>${subtitle ? `<small>${subtitle}</small>` : ""}`;
-    aside.appendChild(heading);
-}
-
 function buildAside() {
     aside.innerHTML = "";
 
-    const moduleData = MODULES.find(m => m.id === currentModule);
-    addAsideHeading(moduleData?.label || "Apartado", "Selecciona una herramienta");
+    aside.classList.toggle("aside-basicas", currentModule === "basicas");
 
     const ul = document.createElement("ul");
     ul.className = "aside-function-list";
