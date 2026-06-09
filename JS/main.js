@@ -1,4 +1,3 @@
-// main.js
 import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=15";
 import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=15";
 import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=15";

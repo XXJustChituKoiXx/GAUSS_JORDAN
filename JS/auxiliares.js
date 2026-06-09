@@ -1,10 +1,20 @@
 //MCD
 function mcd(a, b) {
-    a = a > 0 ? a : -a;
-    b = b > 0 ? b : -b;
-    return b === 0 ? a : mcd(b, a % b);
+    // Convertir a enteros primero
+    a = Math.round(Math.abs(a));
+    b = Math.round(Math.abs(b));
+    
+    if (a === 0 && b === 0) return 1;
+    if (a === 0) return b;
+    if (b === 0) return a;
+    
+    while (b !== 0) {
+        const temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
 }
-
 export function simplificar(num, den) {
     if (num === 0) return [0, 1];
     if (den === 0) throw new Error("División por cero en simplificación");
