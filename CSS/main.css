@@ -1038,14 +1038,6 @@ kbd {
 }
 
 /* ===== 13. PARÉNTESIS EN MATRICES ===== */
-#inputTable td {
-    border-right: none !important;
-}
-
-#inputTable td.separator-col,
-#inputTable td.separator {
-    border-right: none !important;
-}
 
 #inputTable td:has(.paren-left),
 #inputTable td:has(.paren-right) {
@@ -2990,4 +2982,7 @@ body.light .logo-modo-claro {
         width: 100%;
         overflow-x: auto;
     }
+}
+#inputTable td.separator {
+    border-right: 2px solid var(--primary) !important;
 }

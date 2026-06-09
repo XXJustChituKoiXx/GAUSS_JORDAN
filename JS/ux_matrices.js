@@ -7,21 +7,18 @@ import { configurarEventos,ajustarAnchoColumna } from "./eventos_matri.js?v=14";
 let currentOperation = "axb";
 let currentMatrixState = null;
 
-// EXPORTAR estas funciones para que eventos.js pueda usarlas
 export function actualizarSeparadorGlobal(table) {
     if (!table || !table.rows.length) return;
     eliminarSeparadorGlobal(table);
     const sep = table.rows[0].cells.length - 2;
     if (sep >= 0) {
-        requestAnimationFrame(() => {
-            for (let row of table.rows) {
-                const cell = row.cells[sep];
-                if (cell) {
-                    cell.style.borderRight = "2px solid var(--primary)";
-                    cell.classList.add("separator");
-                }
+        for (let row of table.rows) {
+            const cell = row.cells[sep];
+            if (cell) {
+                cell.style.borderRight = "2px solid var(--primary)";
+                cell.classList.add("separator");
             }
-        });
+        }
     }
 }
 
@@ -101,8 +98,9 @@ export function inicializarMatriz(article, modo) {
 
     configurarEventos(article, table, modo);
 
-    if (modo === "axb") actualizarSeparadorGlobal(table);
-    else eliminarSeparadorGlobal(table);
+    if (modo === "axb") {
+        setTimeout(() => actualizarSeparadorGlobal(table), 50);
+    }else eliminarSeparadorGlobal(table);
 
     const btnCalcular = document.getElementById("btnCalcular");
     const btnLimpiarMatriz = document.getElementById("btnLimpiarMatriz");
