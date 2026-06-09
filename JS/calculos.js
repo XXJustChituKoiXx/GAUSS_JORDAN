@@ -29,7 +29,6 @@ function aplicarGaussJordanDeterminante(matriz) {
     let factoresNormalizacion = [];
     let filaPivote = 0;
 
-    // Crear una copia de la matriz para no modificar la original
     const copia = matriz.map(fila => fila.map(v => ({ num: v.num, den: v.den })));
 
     for (let col = 0; col < n && filaPivote < n; col++) {

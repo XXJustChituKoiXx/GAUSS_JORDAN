@@ -1,6 +1,7 @@
 import UI from "./ui.js";
 import Auxiliares, { multiplicarFracciones, sumarFraccionesObj, restarFracciones, normalizarSigno } from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
+import { sumarMatrices, restarMatrices, multiplicarMatrices, multiplicarMatrizPorEscalar, validarDimensionesMatrices } from "./operaciones.js";
 
 let currentBasicOperation = "suma";
 
@@ -490,20 +491,6 @@ function dimensiones(matriz) {
     };
 }
 
-function validarDimensiones(modo, A, B) {
-    const dimA = dimensiones(A);
-    const dimB = B ? dimensiones(B) : null;
-
-    if ((modo === "suma" || modo === "resta") && (dimA.filas !== dimB.filas || dimA.columnas !== dimB.columnas)) {
-        const operacion = modo === "suma" ? "sumar" : "restar";
-        throw new Error(`Para ${operacion} matrices, la matriz A y la matriz B deben tener el mismo número de filas y columnas. Actualmente A es ${dimA.filas}×${dimA.columnas} y B es ${dimB.filas}×${dimB.columnas}.`);
-    }
-
-    if (modo === "multiplicacion" && dimA.columnas !== dimB.filas) {
-        throw new Error(`Para multiplicar matrices, el número de columnas de A debe ser igual al número de filas de B. Actualmente A tiene ${dimA.columnas} columna${dimA.columnas === 1 ? "" : "s"} y B tiene ${dimB.filas} fila${dimB.filas === 1 ? "" : "s"}.`);
-    }
-}
-
 function crearFraccionHTML(valor) {
     const str = Auxiliares.fraccionToString(valor);
     if (!str.includes("/")) return str;
@@ -553,39 +540,6 @@ function mostrarError(article, mensaje) {
     error.textContent = `Error: ${mensaje}`;
     result.appendChild(error);
     article.appendChild(result);
-}
-
-function sumarMatrices(A, B) {
-    return A.map((fila, i) => fila.map((valor, j) => normalizarSigno(sumarFraccionesObj(valor, B[i][j]))));
-}
-
-function restarMatrices(A, B) {
-    return A.map((fila, i) => fila.map((valor, j) => normalizarSigno(restarFracciones(valor, B[i][j]))));
-}
-
-function multiplicarMatrices(A, B) {
-    const filasA = A.length;
-    const columnasA = A[0].length;
-    const columnasB = B[0].length;
-    const resultado = [];
-
-    for (let i = 0; i < filasA; i++) {
-        const fila = [];
-        for (let j = 0; j < columnasB; j++) {
-            let suma = { num: 0, den: 1 };
-            for (let k = 0; k < columnasA; k++) {
-                suma = sumarFraccionesObj(suma, multiplicarFracciones(A[i][k], B[k][j]));
-            }
-            fila.push(normalizarSigno(suma));
-        }
-        resultado.push(fila);
-    }
-
-    return resultado;
-}
-
-function multiplicarPorEscalar(A, escalar) {
-    return A.map(fila => fila.map(valor => normalizarSigno(multiplicarFracciones(valor, escalar))));
 }
 
 function limpiarMatricesBasicas() {
@@ -638,22 +592,22 @@ function renderBasicas(article, modo) {
 
             if (modo === "suma") {
                 const B = leerMatriz("basicMatrixB", "B");
-                validarDimensiones(modo, A, B);
+                validarDimensionesMatrices(modo, A, B);
                 resultado = sumarMatrices(A, B);
             } else if (modo === "resta") {
                 const B = leerMatriz("basicMatrixB", "B");
-                validarDimensiones(modo, A, B);
+                validarDimensionesMatrices(modo, A, B);
                 resultado = restarMatrices(A, B);
             } else if (modo === "multiplicacion") {
                 const B = leerMatriz("basicMatrixB", "B");
-                validarDimensiones(modo, A, B);
+                validarDimensionesMatrices(modo, A, B);
                 resultado = multiplicarMatrices(A, B);
             } else if (modo === "escalar") {
                 const valorEscalar = document.getElementById("basicScalar")?.value.trim() || "1";
                 if (!Auxiliares.esValorNumericoValido(valorEscalar, true)) {
                     throw new Error("El escalar k no es válido. Escribe un número, decimal o fracción con denominador distinto de cero.");
                 }
-                resultado = multiplicarPorEscalar(A, Auxiliares.parsearFraccion(valorEscalar));
+                resultado = multiplicarMatrizPorEscalar(A, Auxiliares.parsearFraccion(valorEscalar));
                 label = "kA =";
             }
 
