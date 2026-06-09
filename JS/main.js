@@ -1,13 +1,15 @@
 // main.js
-import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=13";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=13";
-import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=13";
+import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=14";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=14";
+import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=14";
+import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=14";
 import UI from "./ui.js";
-import { desconfigurarEventosEV } from "./eventos_ev.js?v=13";
-import { desconfigurarEventosMatri } from "./eventos_matri.js?v=13";
+import { desconfigurarEventosEV } from "./eventos_ev.js?v=14";
+import { desconfigurarEventosMatri } from "./eventos_matri.js?v=14";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
+const topNav = document.getElementById("topNav");
 const modal = document.getElementById("helpModal");
 const modalClose = modal?.querySelector(".modal-close");
 const btnCloseModal = document.getElementById("btnEntendidoModal");
@@ -17,6 +19,15 @@ const tutorialModalClose = document.getElementById("tutorialModalClose");
 const btnCerrarTutorialModal = document.getElementById("btnCerrarTutorialModal");
 
 let currentModule = "matrices";
+let currentAsideSelection = "AXB";
+
+const MODULES = [
+    { id: "basicas", label: "Operaciones básicas" },
+    { id: "matrices", label: "Matrices" },
+    { id: "ev", label: "E.V y S.E.V" },
+    { id: "transformaciones", label: "Transformaciones" },
+    { id: "diagonalizacion", label: "Diagonalización" }
+];
 
 // ========== MODAL ==========
 function openModal() { modal?.classList.add("show"); }
@@ -42,191 +53,221 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && tutorialModal?.classList.contains("show")) closeTutorialModal();
 });
 
-// ========== FUNCIONES PLACEHOLDER ==========
-function mostrarPlaceholder(article, titulo) {
-    // Limpiar el article
+// ========== TEMA ==========
+function syncThemeSwitch() {
+    const themeBtn = document.getElementById("themeToggle");
+    const isLight = document.body.classList.contains("light");
+    if (!themeBtn) return;
+    themeBtn.classList.toggle("is-light", isLight);
+    themeBtn.setAttribute("aria-pressed", String(isLight));
+    themeBtn.setAttribute("aria-label", isLight ? "Cambiar a modo oscuro" : "Cambiar a modo claro");
+}
+
+function initThemeToggle() {
+    const themeBtn = document.getElementById("themeToggle");
+    if (!themeBtn) return;
+
+    const savedTheme = localStorage.getItem("gj-theme");
+    if (savedTheme === "light") document.body.classList.add("light");
+    if (savedTheme === "dark") document.body.classList.remove("light");
+    syncThemeSwitch();
+
+    themeBtn.addEventListener("click", () => {
+        document.body.classList.add("theme-animating");
+        document.body.classList.toggle("light");
+        localStorage.setItem("gj-theme", document.body.classList.contains("light") ? "light" : "dark");
+        syncThemeSwitch();
+
+        window.setTimeout(() => {
+            document.body.classList.remove("theme-animating");
+        }, 420);
+    });
+}
+
+// ========== PLACEHOLDER ==========
+function mostrarPlaceholder(article, titulo, subtitulo = "Módulo en construcción") {
     while (article.firstChild) article.removeChild(article.firstChild);
-    
-    // Crear sección principal
+
     const mainSection = UI.createSection("mainSection", titulo);
     const wrapper = UI.createDiv("wrapperPlaceholder");
-    wrapper.style.textAlign = "center";
-    wrapper.style.padding = "3rem";
-    
+    wrapper.className = "placeholder-wrapper";
     wrapper.innerHTML = `
-        <div style="font-size: 4rem; margin-bottom: 1rem;">🚧</div>
-        <h2 style="color: var(--primary); margin-bottom: 1rem;">${titulo}</h2>
-        <p style="color: var(--text-secondary); font-size: 1.1rem;">Módulo en construcción</p>
-        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Próximamente disponible</p>
+        <div class="placeholder-icon">🚧</div>
+        <h2>${titulo}</h2>
+        <p>${subtitulo}</p>
+        <p>El apartado visual ya está reservado para integrarlo después.</p>
     `;
-    
+
     mainSection.appendChild(wrapper);
     article.appendChild(mainSection);
 }
 
-// ========== CONSTRUIR ASIDE ==========
+// ========== NAVEGACIÓN SUPERIOR ==========
+function buildTopNav() {
+    if (!topNav) return;
+    topNav.innerHTML = "";
+
+    MODULES.forEach(module => {
+        const btn = UI.createButton(`topNav-${module.id}`, module.label, "top-nav-btn");
+        btn.type = "button";
+        btn.addEventListener("click", () => switchModule(module.id));
+        topNav.appendChild(btn);
+    });
+
+    updateTopNavSelection();
+}
+
+function updateTopNavSelection() {
+    if (!topNav) return;
+    topNav.querySelectorAll(".top-nav-btn").forEach(btn => btn.classList.remove("seleccionado"));
+    document.getElementById(`topNav-${currentModule}`)?.classList.add("seleccionado");
+}
+
+// ========== FUNCIONES LATERALES ==========
+function createAsideButton(op, onClick) {
+    const li = document.createElement("li");
+    const btn = UI.createButton(op.id, op.text, "btn");
+    btn.type = "button";
+    btn.addEventListener("click", onClick);
+    li.appendChild(btn);
+    return li;
+}
+
+function addAsideHeading(title, subtitle = "") {
+    const heading = document.createElement("div");
+    heading.className = "aside-heading";
+    heading.innerHTML = `<span>Funciones</span><strong>${title}</strong>${subtitle ? `<small>${subtitle}</small>` : ""}`;
+    aside.appendChild(heading);
+}
+
 function buildAside() {
     aside.innerHTML = "";
 
-    // Grupo de navegación
-    const navGroup = UI.createDiv("navGroup");
-    navGroup.className = "nav-group";
+    const moduleData = MODULES.find(m => m.id === currentModule);
+    addAsideHeading(moduleData?.label || "Apartado", "Selecciona una herramienta");
 
-    // Botones en el orden: 1. Op básicas, 2. Matrices, 3. E.V y S.E.V, 4. Transformaciones, 5. Diagonalización
-    const btnBasicas = UI.createButton("btnNavBasicas", "Operaciones básicas", "nav-btn");
-    const btnMat = UI.createButton("btnNavMatrices", "Matrices", "nav-btn");
-    const btnEV = UI.createButton("btnNavEV", "E.V y S.E.V", "nav-btn");
-    const btnTrans = UI.createButton("btnNavTrans", "Transformaciones", "nav-btn");
-    const btnDiagonalizacion = UI.createButton("btnNavDiagonalizacion", "Diagonalización", "nav-btn");
-
-    // Lógica de selección visual
-    if (currentModule === "basicas") btnBasicas.classList.add("seleccionado");
-    else if (currentModule === "matrices") btnMat.classList.add("seleccionado");
-    else if (currentModule === "ev") btnEV.classList.add("seleccionado");
-    else if (currentModule === "transformaciones") btnTrans.classList.add("seleccionado");
-    else if (currentModule === "diagonalizacion") btnDiagonalizacion.classList.add("seleccionado");
-
-    // Eventos
-    btnBasicas.addEventListener("click", () => switchModule("basicas"));
-    btnMat.addEventListener("click", () => switchModule("matrices"));
-    btnEV.addEventListener("click", () => switchModule("ev"));
-    btnTrans.addEventListener("click", () => switchModule("transformaciones"));
-    btnDiagonalizacion.addEventListener("click", () => switchModule("diagonalizacion"));
-
-    navGroup.appendChild(btnBasicas);
-    navGroup.appendChild(btnMat);
-    navGroup.appendChild(btnEV);
-    navGroup.appendChild(btnTrans);
-    navGroup.appendChild(btnDiagonalizacion);
-    aside.appendChild(navGroup);
-
-    // Lista de operaciones del módulo actual (submenú)
     const ul = document.createElement("ul");
+    ul.className = "aside-function-list";
 
     if (currentModule === "matrices") {
         const ops = [
-            { id: "AXB", text: "AX=B" },
-            { id: "inversa", text: "INVERSA" },
-            { id: "determinante", text: "DETERMINANTE" }
+            { id: "AXB", text: "AX = B", modo: "axb" },
+            { id: "inversa", text: "Inversa", modo: "inversa" },
+            { id: "determinante", text: "Determinante", modo: "determinante" }
         ];
 
         ops.forEach(op => {
-            const li = document.createElement("li");
-            const btn = UI.createButton(op.id, op.text, "btn");
-            btn.addEventListener("click", () => {
-                cambiarModo(article, op.id === "AXB" ? "axb" : op.id === "inversa" ? "inversa" : "determinante");
+            ul.appendChild(createAsideButton(op, () => {
+                currentAsideSelection = op.id;
+                cambiarModo(article, op.modo);
                 updateSelection(op.id);
-            });
-            li.appendChild(btn);
-            ul.appendChild(li);
+            }));
         });
-    } 
+    }
     else if (currentModule === "ev") {
         const ops = [
-            { id: "btnLI", text: "ES LI O LD", modo: "li" },
-            { id: "btnPertenecer", text: "PERTENECE A ℒ(V)", modo: "pertenecer" },
-            { id: "btnBase", text: "HALLAR BASE", modo: "base" },
-            { id: "btnCompletar", text: "COMPLETAR BASE", modo: "completar" },
-            { id: "btnOrtogonalizar", text: "ORTOGONALIZAR", modo: "ortogonalizar" }
+            { id: "btnLI", text: "Es LI o LD", modo: "li" },
+            { id: "btnPertenecer", text: "Pertenece a ℒ(V)", modo: "pertenecer" },
+            { id: "btnBase", text: "Hallar base", modo: "base" },
+            { id: "btnCambioBase", text: "Cambio de base", modo: "cambio-base" },
+            { id: "btnCompletar", text: "Completar base", modo: "completar" },
+            { id: "btnOrtogonalizar", text: "Ortogonalizar", modo: "ortogonalizar" }
         ];
 
         ops.forEach(op => {
-            const li = document.createElement("li");
-            const btn = UI.createButton(op.id, op.text, "btn");
-            btn.addEventListener("click", () => {
-                cambiarOperacionEV(article, op.modo);
+            ul.appendChild(createAsideButton(op, () => {
+                currentAsideSelection = op.id;
+                if (op.modo === "cambio-base") {
+                    mostrarPlaceholder(article, "CAMBIO DE BASE", "Apartado agregado visualmente dentro de E.V y S.E.V");
+                } else {
+                    cambiarOperacionEV(article, op.modo);
+                }
                 updateSelection(op.id);
-            });
-            li.appendChild(btn);
-            ul.appendChild(li);
+            }));
         });
     }
     else if (currentModule === "basicas") {
-        // Operaciones básicas SÍ tiene submenú
         const ops = [
-            { id: "btnSuma", text: "SUMA DE MATRICES" },
-            { id: "btnResta", text: "RESTA DE MATRICES" },
-            { id: "btnMultiplicacion", text: "MULTIPLICACIÓN" },
-            { id: "btnEscalar", text: "POR ESCALAR" }
+            { id: "btnSuma", text: "Suma de matrices", modo: "suma" },
+            { id: "btnResta", text: "Resta de matrices", modo: "resta" },
+            { id: "btnMultiplicacion", text: "Multiplicación", modo: "multiplicacion" },
+            { id: "btnEscalar", text: "Por escalar", modo: "escalar" }
         ];
 
         ops.forEach(op => {
-            const li = document.createElement("li");
-            const btn = UI.createButton(op.id, op.text, "btn");
-            btn.addEventListener("click", () => {
+            ul.appendChild(createAsideButton(op, () => {
+                currentAsideSelection = op.id;
+                cambiarOperacionBasica(article, op.modo);
                 updateSelection(op.id);
-                mostrarPlaceholder(article, `OPERACIONES BÁSICAS - ${op.text}`);
-            });
-            li.appendChild(btn);
-            ul.appendChild(li);
+            }));
         });
-    }
-    else if (currentModule === "transformaciones") {
-        // Transformaciones NO tiene submenú - el ul queda vacío
-        // No se agregan botones
-    }
-    else if (currentModule === "diagonalizacion") {
-        // Diagonalización NO tiene submenú - el ul queda vacío
-        // No se agregan botones
     }
 
     aside.appendChild(ul);
 
-    // Toggle tema (siempre visible)
-    const themeBtn = UI.createButton("themeToggle", "MODO CLARO");
-    themeBtn.addEventListener("click", () => {
-        document.body.classList.toggle("light");
-        themeBtn.textContent = document.body.classList.contains("light") ? "MODO OSCURO" : "MODO CLARO";
-    });
-    aside.appendChild(themeBtn);
+    if (!ul.children.length) {
+        const empty = document.createElement("div");
+        empty.className = "aside-empty";
+        empty.textContent = "Este apartado todavía no tiene funciones laterales activas.";
+        aside.appendChild(empty);
+    }
 }
 
 function updateSelection(activeId) {
-    aside.querySelectorAll("ul button").forEach(b => b.classList.remove("seleccionado"));
+    aside.querySelectorAll(".aside-function-list button").forEach(b => b.classList.remove("seleccionado"));
     const btn = document.getElementById(activeId);
     if (btn) btn.classList.add("seleccionado");
 }
 
 function switchModule(module) {
-    if (currentModule === module) return;
+    const isSameModule = currentModule === module;
     currentModule = module;
 
-    // Limpiar eventos previos
     desconfigurarEventosEV();
     desconfigurarEventosMatri(article);
 
+    updateTopNavSelection();
+    buildAside();
+
     if (module === "matrices") {
-        buildAside();
+        currentAsideSelection = "AXB";
         inicializarMatriz(article, "axb");
         updateSelection("AXB");
-    } 
+    }
     else if (module === "ev") {
-        buildAside();
+        currentAsideSelection = "btnLI";
         inicializarEV(article, "li");
         updateSelection("btnLI");
     }
     else if (module === "basicas") {
-        buildAside();
-        mostrarPlaceholder(article, "OPERACIONES BÁSICAS");
+        currentAsideSelection = "btnSuma";
+        inicializarOperacionesBasicas(article, "suma");
         updateSelection("btnSuma");
     }
     else if (module === "transformaciones") {
-        buildAside();
+        currentAsideSelection = "";
         mostrarPlaceholder(article, "TRANSFORMACIONES LINEALES");
-        // No hay selección de submenú
     }
     else if (module === "diagonalizacion") {
-        buildAside();
+        currentAsideSelection = "";
         mostrarPlaceholder(article, "DIAGONALIZACIÓN");
-        // No hay selección de submenú
     }
+
+    if (!isSameModule) article.scrollTo?.({ top: 0, behavior: "smooth" });
 }
 
 // ========== INICIALIZACIÓN ==========
 document.addEventListener("DOMContentLoaded", () => {
+    buildTopNav();
     buildAside();
+    initThemeToggle();
     inicializarMatriz(article, "axb");
     updateSelection("AXB");
     initDragAndDrop();
     initTableSync();
+
+    document.querySelector(".brand")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        switchModule("matrices");
+    });
 });
