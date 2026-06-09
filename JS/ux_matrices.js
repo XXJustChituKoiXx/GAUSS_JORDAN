@@ -2,7 +2,7 @@ import UI, { createSection } from "./ui.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
 import { crearSpanCelda, inputToSpan } from "./celdas.js";
-import { configurarEventos,ajustarAnchoColumna } from "./eventos_matri.js?v=11";
+import { configurarEventos,ajustarAnchoColumna } from "./eventos_matri.js?v=14";
 
 let currentOperation = "axb";
 let currentMatrixState = null;
@@ -90,9 +90,13 @@ export function inicializarMatriz(article, modo) {
     else if (modo === "determinante") buttonText = "Calcular Determinante";
 
     const button = UI.createButton("btnCalcular", buttonText, "btnCalcular");
+    const btnLimpiar = UI.createButton("btnLimpiarMatriz", "Borrar matriz", "btnCalcular btnLimpiarEV");
+    const buttonGroup = document.createElement("div");
+    buttonGroup.className = "matrix-actions";
+    buttonGroup.append(button, btnLimpiar);
 
     mainSection.appendChild(wrapper);
-    mainSection.appendChild(button);
+    mainSection.appendChild(buttonGroup);
     article.appendChild(mainSection);
 
     configurarEventos(article, table, modo);
@@ -101,6 +105,11 @@ export function inicializarMatriz(article, modo) {
     else eliminarSeparadorGlobal(table);
 
     const btnCalcular = document.getElementById("btnCalcular");
+    const btnLimpiarMatriz = document.getElementById("btnLimpiarMatriz");
+
+    if (btnLimpiarMatriz) {
+        btnLimpiarMatriz.onclick = () => limpiarMatrizActual(table);
+    }
 
     if (modo === "axb") {
         btnCalcular.onclick = () => {
@@ -177,6 +186,25 @@ function limpiar(article) {
 function limpiarResultados() {
     const prev = document.getElementById("resultSection");
     if (prev) prev.remove();
+}
+
+function limpiarMatrizActual(table) {
+    if (!table) return;
+
+    const celdas = table.querySelectorAll(".cell-input, .cell-span");
+    celdas.forEach(celda => {
+        if (celda.classList.contains("cell-input")) {
+            celda.value = "0";
+        } else {
+            celda.setAttribute("data-value", "0");
+            celda.textContent = "0";
+        }
+    });
+
+    ajustarTodaLaTabla(table);
+    if (currentOperation === "axb") actualizarSeparadorGlobal(table);
+    else eliminarSeparadorGlobal(table);
+    limpiarResultados();
 }
 
 function mostrarError(container, mensaje) {
