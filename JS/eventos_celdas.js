@@ -1,38 +1,17 @@
-/**
- * eventos_celdas.js
- * Manejador unificado de eventos para celdas editables.
- * Reemplaza eventos_matri.js (modo MATRIZ) y eventos_ev.js (modo EV).
- *
- * API pública:
- *   configurarEventos(article, table, operation)   ← modo Matrices
- *   configurarEventosEV(article, table, callbacks) ← modo EV
- *   desconfigurarEventos()                         ← limpia ambos modos
- *   ajustarAnchoColumna(table, colIndex)           ← util compartida
- *
- * Exportaciones de compatibilidad:
- *   desconfigurarEventosMatri  → alias de desconfigurarEventos
- *   desconfigurarEventosEV     → alias de desconfigurarEventos
- */
-
 import Auxiliares from "./auxiliares.js";
 import { crearSpanCelda, spanToInput, inputToSpan } from "./celdas.js";
 import { actualizarSeparadorGlobal, getCurrentOperation } from "./ux_matrices.js";
 import { syncTableToFileData } from "./dragDrop.js";
 import { actualizarBotonCalcularEV } from "./celdas.js";
 
-// ─────────────────────────────────────────────
-// Estado compartido
-// ─────────────────────────────────────────────
 let _article       = null;
 let _table         = null;
 let _mode          = null;   // "matrix" | "ev"
 let _callbacks     = {};     // solo EV usa esto
 
-// Coordinadas de celda activa
 let _row = 0;
 let _col = 0;
 
-// Handlers guardados para poder limpiarlos
 let _onMousedown   = null;
 let _onKeydown     = null;
 let _onInput       = null;
@@ -41,9 +20,6 @@ let _onBeforeInput = null;
 let _onFocusout    = null;
 let _onWindowKey   = null;
 
-// ─────────────────────────────────────────────
-// Helpers de celda (compartidos)
-// ─────────────────────────────────────────────
 
 function _getEditable(cell) {
     if (!cell) return null;
@@ -556,10 +532,6 @@ function _evBorradoEstructural(rowIdx, colIdx) {
     return true;
 }
 
-// ─────────────────────────────────────────────
-// Handler: input
-// ─────────────────────────────────────────────
-
 function _handleInput(e) {
     const input = e.target;
     if (!input.classList.contains('cell-input')) return;
@@ -644,9 +616,6 @@ function _handleInput(e) {
     }
 }
 
-// ─────────────────────────────────────────────
-// Handler: beforeinput (espacio en móvil)
-// ─────────────────────────────────────────────
 
 function _handleBeforeInput(e) {
     const input = e.target;
@@ -673,10 +642,6 @@ function _handleBeforeInput(e) {
         _sync();
     }
 }
-
-// ─────────────────────────────────────────────
-// Handler: paste (solo matriz)
-// ─────────────────────────────────────────────
 
 function _handlePaste(e) {
     if (_mode !== "matrix") return;
