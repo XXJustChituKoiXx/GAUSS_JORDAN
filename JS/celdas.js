@@ -189,13 +189,6 @@ export function spanToInput(span) {
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
     
-    if (!isEVMode) {
-        setTimeout(() => {
-            import("./dragDrop.js?v=11").then(module => {
-                module.syncTableToFileData();
-            }).catch(() => {});
-        }, 50);
-    }
     return input;
 }
 

@@ -8,6 +8,7 @@ let inputHandler = null;
 let clickHandler = null;
 let pasteHandler = null;
 let beforeInputHandler = null;
+let windowKeyHandler = null;
 let currentTable = null;
 let currentRow = 0;
 let currentCol = 0;
@@ -15,15 +16,17 @@ let lastKeyTime = 0;
 export function desconfigurarEventosMatri(article) {
     if (keydownHandler) article.removeEventListener('keydown', keydownHandler);
     if (inputHandler) article.removeEventListener('input', inputHandler);
-    if (clickHandler) article.removeEventListener('click', clickHandler);
+    if (clickHandler) article.removeEventListener('mousedown', clickHandler);
     if (pasteHandler) article.removeEventListener('paste', pasteHandler);
     if (beforeInputHandler) article.removeEventListener('beforeinput', beforeInputHandler);
+    if (windowKeyHandler) window.removeEventListener('keydown', windowKeyHandler);
     
     keydownHandler = null;
     inputHandler = null;
     clickHandler = null;
     pasteHandler = null;
     beforeInputHandler = null;
+    windowKeyHandler = null;
     currentTable = null;
 }
 
@@ -32,30 +35,32 @@ export function configurarEventos(article, table, operation) {
 
     if (keydownHandler) article.removeEventListener('keydown', keydownHandler);
     if (inputHandler) article.removeEventListener('input', inputHandler);
-    if (clickHandler) article.removeEventListener('click', clickHandler);
+    if (clickHandler) article.removeEventListener('mousedown', clickHandler);
     if (pasteHandler) article.removeEventListener('paste', pasteHandler);
     if (beforeInputHandler) article.removeEventListener('beforeinput', beforeInputHandler);
 
     keydownHandler = (e) => manejarKeydown(e);
     inputHandler = manejarInput;
-    clickHandler = (e) => manejarClick(e);
+    clickHandler = (e) => manejarMousedown(e);
     pasteHandler = (e) => manejarPegado(e);
     beforeInputHandler = (e) => manejarBeforeInput(e);
 
     article.addEventListener('keydown', keydownHandler);
     article.addEventListener('input', inputHandler);
-    article.addEventListener('click', clickHandler);
+    article.addEventListener('mousedown', clickHandler);
     article.addEventListener('paste', pasteHandler);
     article.addEventListener('beforeinput', beforeInputHandler);
 
     // Prevenir el scroll por espacio en la página completa
-    window.addEventListener('keydown', function (e) {
+    if (windowKeyHandler) window.removeEventListener('keydown', windowKeyHandler);
+    windowKeyHandler = function (e) {
         if (e.key === ' ' && document.activeElement &&
             (document.activeElement.classList.contains('cell-input') ||
                 document.activeElement.classList.contains('cell-span'))) {
             e.preventDefault();
         }
-    });
+    };
+    window.addEventListener('keydown', windowKeyHandler);
 }
 
 function actualizarCoordenadasDesdeElemento(elemento) {
@@ -310,64 +315,56 @@ function manejarPegado(e) {
     }, 100);
 }
 
-function manejarClick(e) {
+
+function manejarMousedown(e) {
     const target = e.target;
     const table = currentTable;
     if (!table) return;
 
-    const allInputs = table.querySelectorAll('.cell-input');
-    allInputs.forEach(input => {
+    // Si el click fue dentro de un input activo, no hacer nada — dejar al browser manejar el foco
+    if (target.classList.contains('cell-input')) return;
+
+    // Resolver la celda destino
+    let tdDestino = null;
+    let spanDestino = null;
+
+    if (target.classList.contains('cell-span')) {
+        spanDestino = target;
+        tdDestino = target.closest('td');
+    } else if (target.closest('.cell-span')) {
+        spanDestino = target.closest('.cell-span');
+        tdDestino = spanDestino.closest('td');
+    } else if (target.tagName === 'TD') {
+        tdDestino = target;
+        spanDestino = target.querySelector('.cell-span');
+    } else if (target.closest('td')) {
+        tdDestino = target.closest('td');
+        spanDestino = tdDestino.querySelector('.cell-span');
+    }
+
+    if (!tdDestino || !spanDestino) return;
+
+    // Prevenir que el browser mueva el foco solo — nosotros lo manejamos
+    e.preventDefault();
+
+    // Cerrar inputs de otras celdas
+    table.querySelectorAll('.cell-input').forEach(input => {
         const inputCell = input.closest('td');
-        const clickedCell = target.closest('td');
-        if (inputCell !== clickedCell) {
+        if (inputCell !== tdDestino) {
             inputToSpan(input);
-            ajustarAnchoColumna(currentTable, currentCol);
+            if (inputCell) ajustarAnchoColumna(table, inputCell.cellIndex);
         }
     });
 
-    if (target.classList.contains('cell-span') || target.classList.contains('cell-input')) {
-        actualizarCoordenadasDesdeElemento(target);
-    } else if (target.closest('.frac')) {
-        const span = target.closest('.cell-span');
-        if (span) actualizarCoordenadasDesdeElemento(span);
-    } else if (target.tagName === 'TD') {
-        const span = target.querySelector('.cell-span');
-        if (span) actualizarCoordenadasDesdeElemento(span);
-    }
+    actualizarCoordenadasDesdeElemento(spanDestino);
 
-    if (target.classList.contains('cell-span')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const input = spanToInput(target);
-        if (input) {
-            actualizarCoordenadasDesdeElemento(input);
-        }
-        return;
-    }
-
-    if (target.closest('.frac') && target.closest('.cell-span')) {
-        const span = target.closest('.cell-span');
-        e.preventDefault();
-        e.stopPropagation();
-        const input = spanToInput(span);
-        if (input) {
-            actualizarCoordenadasDesdeElemento(input);
-        }
-        return;
-    }
-
-    if (target.tagName === 'TD') {
-        const span = target.querySelector('.cell-span');
-        if (span) {
-            e.preventDefault();
-            const input = spanToInput(span);
-            if (input) {
-                actualizarCoordenadasDesdeElemento(input);
-            }
-        }
+    const input = spanToInput(spanDestino);
+    if (input) {
+        actualizarCoordenadasDesdeElemento(input);
+        input.focus();
+        input.select();
     }
 }
-
 function manejarBeforeInput(e) {
     const input = e.target;
     if (!input || input.tagName !== 'INPUT' || !input.classList.contains('cell-input')) return;

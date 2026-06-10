@@ -511,6 +511,15 @@ export function initDragAndDrop() {
     });
 }
 
+let _tableObserver = null;
+
+export function disconnectTableSync() {
+    if (_tableObserver) {
+        _tableObserver.disconnect();
+        _tableObserver = null;
+    }
+}
+
 export function initTableSync() {
     const article = document.getElementById("article");
     if (!article) return;
@@ -537,20 +546,32 @@ export function initTableSync() {
         }
     });
     
-    const observer = new MutationObserver((mutations) => {
+    disconnectTableSync();
+    
+    _tableObserver = new MutationObserver((mutations) => {
         if (!currentFileData || isProcessing) return;
         
         let shouldSync = false;
         
         for (const mutation of mutations) {
-            if (mutation.type === 'childList') {
-                const table = getCurrentTable();
-                if (table && (mutation.target === table || 
-                    mutation.target.closest('#inputTable') ||
-                    mutation.target.querySelector('#inputTable'))) {
-                    shouldSync = true;
-                    break;
-                }
+            if (mutation.type !== 'childList') continue;
+
+            // Ignorar mutaciones que son solo el swap span <-> input (edición de celda).
+            // Esas mutaciones tienen exactamente un nodo añadido y uno removido,
+            // y ambos son cell-span o cell-input dentro de una <td>.
+            const allNodes = [...mutation.addedNodes, ...mutation.removedNodes];
+            const esSoloSwapCelda = allNodes.length <= 2 && allNodes.every(n =>
+                n.nodeType === Node.ELEMENT_NODE &&
+                (n.classList?.contains('cell-span') || n.classList?.contains('cell-input'))
+            );
+            if (esSoloSwapCelda) continue;
+
+            const table = getCurrentTable();
+            if (table && (mutation.target === table || 
+                mutation.target.closest('#inputTable') ||
+                mutation.target.querySelector('#inputTable'))) {
+                shouldSync = true;
+                break;
             }
         }
         
@@ -562,7 +583,7 @@ export function initTableSync() {
         }
     });
     
-    observer.observe(article, {
+    _tableObserver.observe(article, {
         childList: true,
         subtree: true
     });

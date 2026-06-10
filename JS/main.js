@@ -1,7 +1,7 @@
 import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=15";
 import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=15";
 import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=15";
-import { initDragAndDrop, initTableSync } from "./dragDrop.js?v=15";
+import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.js?v=15";
 import UI from "./ui.js";
 import { desconfigurarEventosEV } from "./eventos_ev.js?v=15";
 import { desconfigurarEventosMatri } from "./eventos_matri.js?v=15";
@@ -216,6 +216,7 @@ function switchModule(module) {
 
     desconfigurarEventosEV();
     desconfigurarEventosMatri(article);
+    disconnectTableSync();
 
     updateTopNavSelection();
     buildAside();
@@ -224,6 +225,7 @@ function switchModule(module) {
         currentAsideSelection = "AXB";
         inicializarMatriz(article, "axb");
         updateSelection("AXB");
+        initTableSync();
     }
     else if (module === "ev") {
         currentAsideSelection = "btnLI";

@@ -1,24 +1,27 @@
 import UI, { createSection } from "./ui.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
-import { crearSpanCelda, inputToSpan } from "./celdas.js";
+import { crearSpanCelda, inputToSpan, spanToInput } from "./celdas.js";
 import { configurarEventos,ajustarAnchoColumna } from "./eventos_matri.js?v=14";
 
 let currentOperation = "axb";
 let currentMatrixState = null;
 
+// EXPORTAR estas funciones para que eventos.js pueda usarlas
 export function actualizarSeparadorGlobal(table) {
     if (!table || !table.rows.length) return;
     eliminarSeparadorGlobal(table);
     const sep = table.rows[0].cells.length - 2;
     if (sep >= 0) {
-        for (let row of table.rows) {
-            const cell = row.cells[sep];
-            if (cell) {
-                cell.style.borderRight = "2px solid var(--primary)";
-                cell.classList.add("separator");
+        requestAnimationFrame(() => {
+            for (let row of table.rows) {
+                const cell = row.cells[sep];
+                if (cell) {
+                    cell.style.borderRight = "2px solid var(--primary)";
+                    cell.classList.add("separator");
+                }
             }
-        }
+        });
     }
 }
 
@@ -39,6 +42,8 @@ export function getCurrentOperation() {
 export function setCurrentOperation(op) {
     currentOperation = op;
 }
+
+// En ux_matrices.js, modifica la función inicializarMatriz:
 
 export function inicializarMatriz(article, modo) {
     currentOperation = modo;
@@ -96,34 +101,59 @@ export function inicializarMatriz(article, modo) {
     mainSection.appendChild(buttonGroup);
     article.appendChild(mainSection);
 
+    // PRIMERO configurar eventos, después actualizar el separador
     configurarEventos(article, table, modo);
 
-    if (modo === "axb") {
-        setTimeout(() => actualizarSeparadorGlobal(table), 50);
-    }else eliminarSeparadorGlobal(table);
+    if (modo === "axb") actualizarSeparadorGlobal(table);
+    else eliminarSeparadorGlobal(table);
 
     const btnCalcular = document.getElementById("btnCalcular");
     const btnLimpiarMatriz = document.getElementById("btnLimpiarMatriz");
 
     if (btnLimpiarMatriz) {
-        btnLimpiarMatriz.onclick = () => limpiarMatrizActual(table);
+        // Remover eventos anteriores antes de agregar nuevos
+        const newBtnLimpiar = btnLimpiarMatriz.cloneNode(true);
+        btnLimpiarMatriz.parentNode.replaceChild(newBtnLimpiar, btnLimpiarMatriz);
+        newBtnLimpiar.onclick = () => limpiarMatrizActual(table);
     }
 
     if (modo === "axb") {
-        btnCalcular.onclick = () => {
-            ajustarTodaLaTabla(table); 
-            calcularSistemasEcuaciones();
-        };
+        if (btnCalcular) {
+            const newBtn = btnCalcular.cloneNode(true);
+            btnCalcular.parentNode.replaceChild(newBtn, btnCalcular);
+            newBtn.onclick = () => {
+                ajustarTodaLaTabla(table); 
+                calcularSistemasEcuaciones();
+            };
+        }
     } else if (modo === "inversa") {
-        btnCalcular.onclick = () => {
-            ajustarTodaLaTabla(table); 
-            calcularInversa();
-        };
+        if (btnCalcular) {
+            const newBtn = btnCalcular.cloneNode(true);
+            btnCalcular.parentNode.replaceChild(newBtn, btnCalcular);
+            newBtn.onclick = () => {
+                ajustarTodaLaTabla(table); 
+                calcularInversa();
+            };
+        }
     } else if (modo === "determinante") {
-        btnCalcular.onclick = () => {
-            ajustarTodaLaTabla(table); 
-            calcularDeterminante();
-        };
+        if (btnCalcular) {
+            const newBtn = btnCalcular.cloneNode(true);
+            btnCalcular.parentNode.replaceChild(newBtn, btnCalcular);
+            newBtn.onclick = () => {
+                ajustarTodaLaTabla(table); 
+                calcularDeterminante();
+            };
+        }
+    }
+    
+    // Enfocar la primera celda directamente (sin click artificial)
+    const firstSpan = table.querySelector('.cell-span');
+    if (firstSpan) {
+        const firstInput = spanToInput(firstSpan);
+        if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+        }
     }
 }
 
