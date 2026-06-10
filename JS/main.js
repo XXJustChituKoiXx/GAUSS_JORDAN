@@ -3,8 +3,8 @@ import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=15";
 import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=15";
 import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.js?v=15";
 import UI from "./ui.js";
-import { desconfigurarEventosEV } from "./eventos_ev.js?v=15";
-import { desconfigurarEventosMatri } from "./eventos_matri.js?v=15";
+
+import { desconfigurarEventos as desconfigurarEventosMatri, desconfigurarEventos as desconfigurarEventosEV } from "./eventos_celdas.js";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");

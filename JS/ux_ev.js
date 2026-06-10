@@ -1,5 +1,5 @@
 import UI from "./ui.js";
-import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_ev.js?v=13";
+import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_celdas.js";
 import Auxiliares from "./auxiliares.js?v=13";
 import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar } from "./calculos.js";
 import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=13";
