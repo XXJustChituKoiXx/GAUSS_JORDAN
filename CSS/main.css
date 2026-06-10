@@ -2986,3 +2986,137 @@ body.light .logo-modo-claro {
 #inputTable td.separator {
     border-right: 2px solid var(--primary) !important;
 }
+/* ===== 21. AJUSTES FINALES DE TEMA Y CAMBIO DE BASE ===== */
+#themeToggle.theme-switch .theme-thumb {
+    left: 43px;
+}
+
+#themeToggle.theme-switch.is-light .theme-thumb {
+    left: 5px;
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-icon.sun {
+    color: var(--primary);
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
+    color: #ffffff;
+}
+
+body.light #themeToggle.theme-switch .theme-icon.sun {
+    color: #ffffff;
+}
+
+body.light #themeToggle.theme-switch .theme-icon.moon {
+    color: var(--primary);
+}
+
+.error-message {
+    background: var(--error-bg);
+    color: var(--error);
+    border-left: 4px solid var(--error);
+}
+
+.cambio-base-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cambio-base-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.cambio-base-note {
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 760px;
+    line-height: 1.45;
+    font-size: 0.95rem;
+}
+
+.cambio-base-table td {
+    padding: 0;
+    min-width: 75px;
+    height: 55px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.cambio-base-table .cell-input,
+.cambio-base-table .cell-span {
+    min-width: 75px;
+    height: 55px;
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--text-primary);
+    background: var(--cell-bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    outline: none;
+}
+
+.cambio-base-table .cell-input:focus {
+    border-color: var(--primary);
+    background: var(--input-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.cambio-base-table .cell-span {
+    cursor: pointer;
+    user-select: none;
+}
+
+.cambio-base-table .cell-span:hover {
+    background: var(--cell-hover);
+    border-color: var(--primary);
+}
+
+@media (max-width: 768px) {
+    #themeToggle.theme-switch .theme-thumb {
+        left: 39px;
+    }
+
+    #themeToggle.theme-switch.is-light .theme-thumb {
+        left: 5px;
+    }
+
+    .cambio-base-table td {
+        min-width: 65px;
+        height: 50px;
+    }
+
+    .cambio-base-table .cell-input,
+    .cambio-base-table .cell-span {
+        min-width: 65px;
+        height: 50px;
+        font-size: 1.15rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .cambio-base-table td {
+        min-width: 56px;
+        height: 44px;
+    }
+
+    .cambio-base-table .cell-input,
+    .cambio-base-table .cell-span {
+        min-width: 56px;
+        height: 44px;
+        font-size: 1rem;
+    }
+}
