@@ -136,7 +136,10 @@ function createAsideButton(op, onClick) {
 function buildAside() {
     aside.innerHTML = "";
 
+    document.body.classList.toggle("module-transformaciones", currentModule === "transformaciones");
     aside.classList.toggle("aside-basicas", currentModule === "basicas");
+
+    if (currentModule === "transformaciones") return;
 
     const ul = document.createElement("ul");
     ul.className = "aside-function-list";
@@ -190,21 +193,6 @@ function buildAside() {
             }));
         });
     }
-    else if (currentModule === "transformaciones") {
-        const ops = [
-            { id: "btnTransformacionesLineales", text: "Transformaciones lineales" }
-        ];
-
-        ops.forEach(op => {
-            ul.appendChild(createAsideButton(op, () => {
-                currentAsideSelection = op.id;
-                limpiarTransformaciones();
-                inicializarTransformaciones(article);
-                updateSelection(op.id);
-            }));
-        });
-    }
-
     aside.appendChild(ul);
 
     if (!ul.children.length) {
@@ -250,10 +238,9 @@ function switchModule(module) {
         updateSelection("btnSuma");
     }
     else if (module === "transformaciones") {
-        currentAsideSelection = "btnTransformacionesLineales";
+        currentAsideSelection = "";
         limpiarTransformaciones();
         inicializarTransformaciones(article);
-        updateSelection("btnTransformacionesLineales");
     }
     else if (module === "diagonalizacion") {
         currentAsideSelection = "";
