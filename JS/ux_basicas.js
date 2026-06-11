@@ -39,7 +39,7 @@ function crearMatrizEditable(id, labelText, filas = 2, columnas = 2) {
 
     const label = document.createElement("div");
     label.className = "basic-matrix-label";
-    label.textContent = `${labelText} =`;
+    label.textContent = `${labelText}=`;
 
     const container = document.createElement("div");
     container.className = "basic-matrix-container";
@@ -76,7 +76,7 @@ function crearEscalarVisual() {
 
     const label = document.createElement("div");
     label.className = "basic-matrix-label";
-    label.textContent = "k =";
+    label.textContent = "k=";
 
     const input = document.createElement("input");
     input.id = "basicScalar";
@@ -547,26 +547,11 @@ function mostrarError(article, mensaje) {
 }
 
 function limpiarMatricesBasicas() {
-    document.querySelectorAll("#mainSection .basic-input-table .cell-input, #mainSection .basic-input-table .cell-span").forEach(celda => {
-        if (celda.classList.contains("cell-input")) {
-            celda.value = "";
-        } else {
-            celda.setAttribute("data-value", "");
-            celda.innerHTML = "";
-            celda.textContent = "";
-        }
-    });
+    const article = document.getElementById("article");
+    if (!article) return;
 
-    const scalar = document.getElementById("basicScalar");
-    if (scalar) {
-        scalar.value = "";
-        scalar.style.width = "5ch";
-    }
-    document.querySelectorAll("#mainSection .basic-input-table").forEach(ajustarTodasColumnasBasicas);
     document.getElementById("resultSection")?.remove();
-
-    const firstTable = document.querySelector("#mainSection .basic-input-table");
-    if (firstTable) setTimeout(() => enfocarCelda(firstTable, 0, 0), 20);
+    renderBasicas(article, currentBasicOperation);
 }
 
 function renderBasicas(article, modo) {
