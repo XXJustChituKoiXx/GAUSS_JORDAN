@@ -625,6 +625,12 @@ function crearSwitchBaseCanonica(tableId, labelText) {
     const wrapper = document.createElement("label");
     wrapper.className = "canonical-switch-wrapper";
     wrapper.setAttribute("for", `${tableId}CanonicaSwitch`);
+    wrapper.setAttribute("title", `Usar base canónica para ${labelText}`);
+
+    const symbol = document.createElement("span");
+    symbol.className = "canonical-switch-symbol";
+    symbol.textContent = "𝔼";
+    symbol.setAttribute("aria-hidden", "true");
 
     const input = document.createElement("input");
     input.type = "checkbox";
@@ -632,6 +638,7 @@ function crearSwitchBaseCanonica(tableId, labelText) {
     input.className = "canonical-switch-input";
     input.dataset.tableId = tableId;
     input.dataset.baseName = labelText;
+    input.setAttribute("aria-label", `Usar base canónica para ${labelText}`);
 
     const visual = document.createElement("span");
     visual.className = "canonical-switch-visual";
@@ -640,12 +647,8 @@ function crearSwitchBaseCanonica(tableId, labelText) {
     const knob = document.createElement("span");
     knob.className = "canonical-switch-knob";
 
-    const text = document.createElement("span");
-    text.className = "canonical-switch-text";
-    text.textContent = "Canónica";
-
-    visual.append(knob, text);
-    wrapper.append(input, visual);
+    visual.appendChild(knob);
+    wrapper.append(symbol, input, visual);
     return wrapper;
 }
 
@@ -655,12 +658,14 @@ function crearMatrizCambioBaseEditable(id, labelText, filas = 2, columnas = 2) {
 
     const header = document.createElement("div");
     header.className = "cambio-base-card-header";
+    header.appendChild(crearSwitchBaseCanonica(id, labelText));
+
+    const matrixRow = document.createElement("div");
+    matrixRow.className = "cambio-base-matrix-row";
 
     const label = document.createElement("div");
-    label.className = "basic-matrix-label";
+    label.className = "basic-matrix-label cambio-base-matrix-label";
     label.textContent = `${labelText} =`;
-
-    header.append(label, crearSwitchBaseCanonica(id, labelText));
 
     const container = document.createElement("div");
     container.className = "basic-matrix-container";
@@ -680,7 +685,8 @@ function crearMatrizCambioBaseEditable(id, labelText, filas = 2, columnas = 2) {
     }
 
     container.appendChild(table);
-    card.append(header, container);
+    matrixRow.append(label, container);
+    card.append(header, matrixRow);
     return card;
 }
 
