@@ -695,7 +695,7 @@ function crearBloqueMatrizEditable(key) {
 
     const label = document.createElement("span");
     label.className = "tf-matrix-label";
-    label.innerHTML = `${cfg.label} <span class="tf-symbol">${cfg.symbol}</span> =`;
+    label.innerHTML = `${cfg.label}<span class="tf-symbol"> ${cfg.symbol}</span>=`;
 
     const matrixContainer = document.createElement("div");
     matrixContainer.className = "tf-matrix-container tableMain";
