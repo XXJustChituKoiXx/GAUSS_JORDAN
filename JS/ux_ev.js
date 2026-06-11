@@ -621,13 +621,46 @@ function crearTdCambioBase(row, col) {
     return td;
 }
 
+function crearSwitchBaseCanonica(tableId, labelText) {
+    const wrapper = document.createElement("label");
+    wrapper.className = "canonical-switch-wrapper";
+    wrapper.setAttribute("for", `${tableId}CanonicaSwitch`);
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = `${tableId}CanonicaSwitch`;
+    input.className = "canonical-switch-input";
+    input.dataset.tableId = tableId;
+    input.dataset.baseName = labelText;
+
+    const visual = document.createElement("span");
+    visual.className = "canonical-switch-visual";
+    visual.setAttribute("aria-hidden", "true");
+
+    const knob = document.createElement("span");
+    knob.className = "canonical-switch-knob";
+
+    const text = document.createElement("span");
+    text.className = "canonical-switch-text";
+    text.textContent = "Canónica";
+
+    visual.append(knob, text);
+    wrapper.append(input, visual);
+    return wrapper;
+}
+
 function crearMatrizCambioBaseEditable(id, labelText, filas = 2, columnas = 2) {
     const card = document.createElement("div");
     card.className = "basic-matrix-card cambio-base-card";
 
+    const header = document.createElement("div");
+    header.className = "cambio-base-card-header";
+
     const label = document.createElement("div");
     label.className = "basic-matrix-label";
     label.textContent = `${labelText} =`;
+
+    header.append(label, crearSwitchBaseCanonica(id, labelText));
 
     const container = document.createElement("div");
     container.className = "basic-matrix-container";
@@ -647,7 +680,7 @@ function crearMatrizCambioBaseEditable(id, labelText, filas = 2, columnas = 2) {
     }
 
     container.appendChild(table);
-    card.append(label, container);
+    card.append(header, container);
     return card;
 }
 
@@ -723,6 +756,7 @@ function insertarFilaCambioBase(table, rowIndex, colIndex) {
     }
     actualizarAtributosCambioBase(table);
     ajustarTodasColumnasCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
     setTimeout(() => enfocarCeldaCambioBase(table, rowIndex + 1, colIndex), 10);
 }
 
@@ -733,6 +767,7 @@ function insertarColumnaCambioBase(table, rowIndex, colIndex) {
     });
     actualizarAtributosCambioBase(table);
     ajustarTodasColumnasCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
     setTimeout(() => enfocarCeldaCambioBase(table, rowIndex, colIndex + 1), 10);
 }
 
@@ -757,6 +792,7 @@ function eliminarFilaCambioBase(table, rowIndex) {
     if (table.rows.length <= 1) return false;
     table.deleteRow(rowIndex);
     actualizarAtributosCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
     return true;
 }
 
@@ -764,6 +800,7 @@ function eliminarColumnaCambioBase(table, colIndex) {
     if (!table.rows.length || table.rows[0].cells.length <= 1) return false;
     Array.from(table.rows).forEach(row => row.deleteCell(colIndex));
     actualizarAtributosCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
     return true;
 }
 
@@ -780,6 +817,7 @@ function revisarBorradoCambioBase(table, rowIndex, colIndex) {
     }
 
     ajustarTodasColumnasCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
     setTimeout(() => enfocarCeldaCambioBase(table, targetRow, targetCol), 10);
 }
 
@@ -790,6 +828,7 @@ function finalizarEntradaCambioBase(input) {
     const col = cell?.cellIndex ?? 0;
     inputToSpan(input);
     ajustarAnchoColumnaCambioBase(table, col);
+    sincronizarSwitchCanonicoCambioBase(table);
 }
 
 function moverCambioBase(table, rowIndex, colIndex, deltaRow, deltaCol) {
@@ -804,6 +843,138 @@ function limpiarValorSpanCambioBase(span) {
     span.setAttribute("data-value", "");
     span.innerHTML = "";
     span.textContent = "";
+}
+
+function obtenerValorCambioBaseEditable(editable) {
+    if (!editable) return "";
+    if (editable.classList.contains("cell-input")) return editable.value.trim();
+    return (editable.getAttribute("data-value") || editable.textContent || "").trim();
+}
+
+function obtenerValorCambioBaseCell(cell) {
+    return obtenerValorCambioBaseEditable(obtenerEditableCambioBase(cell));
+}
+
+function fraccionCambioBaseIgualA(valor, esperado) {
+    const texto = Auxiliares.normalizarValorTexto(valor);
+    if (!Auxiliares.esValorNumericoValido(texto, false)) return false;
+    const fraccion = Auxiliares.normalizarSigno(Auxiliares.parsearFraccion(texto));
+    const [num, den] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+    return num === esperado && den === 1;
+}
+
+function esCeroVisualCanonicoCambioBase(valor) {
+    const texto = String(valor || "").trim();
+    if (texto === "") return true;
+    return fraccionCambioBaseIgualA(texto, 0);
+}
+
+function esMatrizCanonicaCambioBase(table) {
+    if (!table?.rows.length) return false;
+
+    const filas = table.rows.length;
+    const columnas = table.rows[0]?.cells.length || 0;
+    if (filas === 0 || columnas === 0 || filas !== columnas) return false;
+
+    for (let i = 0; i < filas; i++) {
+        for (let j = 0; j < columnas; j++) {
+            const valor = obtenerValorCambioBaseCell(table.rows[i].cells[j]);
+
+            if (i === j) {
+                if (!fraccionCambioBaseIgualA(valor, 1)) return false;
+            } else if (!esCeroVisualCanonicoCambioBase(valor)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function obtenerSwitchCanonicoCambioBase(table) {
+    if (!table?.id) return null;
+    return document.querySelector(`.canonical-switch-input[data-table-id="${table.id}"]`);
+}
+
+function marcarSwitchCanonicoCambioBase(table, checked) {
+    const switchInput = obtenerSwitchCanonicoCambioBase(table);
+    if (!switchInput) return;
+    switchInput.checked = checked;
+    switchInput.setAttribute("aria-checked", String(checked));
+    switchInput.closest(".canonical-switch-wrapper")?.classList.toggle("is-active", checked);
+}
+
+function sincronizarSwitchCanonicoCambioBase(table) {
+    if (!table) return;
+    marcarSwitchCanonicoCambioBase(table, esMatrizCanonicaCambioBase(table));
+}
+
+function sincronizarSwitchesCanonicosCambioBase() {
+    document.querySelectorAll("#mainSection .cambio-base-table").forEach(sincronizarSwitchCanonicoCambioBase);
+}
+
+function asignarValorCeldaCambioBase(table, rowIndex, colIndex, valor) {
+    const cell = table.rows[rowIndex]?.cells[colIndex];
+    if (!cell) return;
+    const editable = obtenerEditableCambioBase(cell);
+    const span = crearSpanCelda(valor, rowIndex, colIndex);
+
+    if (editable) editable.replaceWith(span);
+    else cell.appendChild(span);
+}
+
+function reconstruirMatrizCanonicaCambioBase(table, dimension) {
+    if (!table) return;
+    table.innerHTML = "";
+
+    for (let i = 0; i < dimension; i++) {
+        const tr = document.createElement("tr");
+        for (let j = 0; j < dimension; j++) {
+            const td = document.createElement("td");
+            td.appendChild(crearSpanCelda(i === j ? "1" : "0", i, j));
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    marcarSwitchCanonicoCambioBase(table, true);
+}
+
+function limpiarTablaCambioBase(table) {
+    if (!table) return;
+
+    Array.from(table.rows).forEach((row, rowIndex) => {
+        Array.from(row.cells).forEach((cell, colIndex) => {
+            asignarValorCeldaCambioBase(table, rowIndex, colIndex, "");
+        });
+    });
+
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    marcarSwitchCanonicoCambioBase(table, false);
+}
+
+function manejarCambioSwitchCanonicoCambioBase(input) {
+    const table = document.getElementById(input.dataset.tableId);
+    if (!table) return;
+
+    const debeActivarCanonica = input.checked;
+    finalizarEntradasCambioBase();
+    document.getElementById("resultadoEVSection")?.remove();
+
+    if (debeActivarCanonica) {
+        const filas = table.rows.length || 2;
+        const columnas = table.rows[0]?.cells.length || 2;
+        const dimension = Math.max(1, filas, columnas);
+        reconstruirMatrizCanonicaCambioBase(table, dimension);
+        setTimeout(() => enfocarCeldaCambioBase(table, 0, 0), 20);
+        return;
+    }
+
+    limpiarTablaCambioBase(table);
+    setTimeout(() => enfocarCeldaCambioBase(table, 0, 0), 20);
 }
 
 function sanitizarValorCambioBase(valor) {
@@ -877,7 +1048,10 @@ function manejarKeydownCambioBase(event) {
             const input = spanToInput(target);
             if (input) {
                 input.value = event.key;
-                input.setSelectionRange(1, 1);
+                input.value = sanitizarValorCambioBase(input.value);
+                input.setSelectionRange(input.value.length, input.value.length);
+                input.style.width = `${Math.max(5, input.value.length + 1)}ch`;
+                sincronizarSwitchCanonicoCambioBase(table);
             }
         }
         return;
@@ -935,6 +1109,7 @@ function manejarInputCambioBase(event) {
     input.style.width = `${Math.max(5, input.value.length + 1)}ch`;
     const cell = input.closest("td");
     ajustarAnchoColumnaCambioBase(table, cell?.cellIndex ?? 0);
+    sincronizarSwitchCanonicoCambioBase(table);
 }
 
 function manejarClickCambioBase(event) {
@@ -975,6 +1150,11 @@ function configurarEventosCambioBase(section) {
     section.addEventListener("input", manejarInputCambioBase);
     section.addEventListener("click", manejarClickCambioBase);
     section.addEventListener("beforeinput", manejarBeforeInputCambioBase);
+
+    section.querySelectorAll(".canonical-switch-input").forEach(input => {
+        input.setAttribute("aria-checked", String(input.checked));
+        input.addEventListener("change", () => manejarCambioSwitchCanonicoCambioBase(input));
+    });
 }
 
 function finalizarEntradasCambioBase() {
@@ -1088,17 +1268,7 @@ function mostrarErrorCambioBase(article, mensaje) {
 }
 
 function limpiarCambioBase() {
-    document.querySelectorAll("#mainSection .cambio-base-table .cell-input, #mainSection .cambio-base-table .cell-span").forEach(celda => {
-        if (celda.classList.contains("cell-input")) {
-            celda.value = "";
-        } else {
-            celda.setAttribute("data-value", "");
-            celda.innerHTML = "";
-            celda.textContent = "";
-        }
-    });
-
-    document.querySelectorAll("#mainSection .cambio-base-table").forEach(ajustarTodasColumnasCambioBase);
+    document.querySelectorAll("#mainSection .cambio-base-table").forEach(limpiarTablaCambioBase);
     document.getElementById("resultadoEVSection")?.remove();
 
     const firstTable = document.querySelector("#mainSection .cambio-base-table");
@@ -1130,6 +1300,7 @@ function renderCambioBase(article) {
     article.appendChild(mainSection);
 
     configurarEventosCambioBase(mainSection);
+    sincronizarSwitchesCanonicosCambioBase();
 
     const firstTable = document.getElementById("baseOrigenTable");
     if (firstTable) setTimeout(() => enfocarCeldaCambioBase(firstTable, 0, 0), 30);
