@@ -209,9 +209,13 @@ function insertarColumnaBasica(table, rowIndex, colIndex) {
 function celdaVacia(cell) {
     const input = cell?.querySelector(".cell-input");
     const span = cell?.querySelector(".cell-span");
-    if (input) return input.value.trim() === "";
-    if (span) return (span.getAttribute("data-value") || "") === "";
-    return true;
+    const valor = (input?.value ?? span?.getAttribute("data-value") ?? span?.textContent ?? "").trim();
+    if (valor === "") return true;
+    try {
+        return Auxiliares.parsearFraccion(valor).num === 0;
+    } catch {
+        return false;
+    }
 }
 
 function filaVacia(table, rowIndex) {
