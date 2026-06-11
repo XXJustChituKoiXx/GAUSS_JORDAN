@@ -822,51 +822,123 @@ export function ajustarAnchoColumna(table, colIndex) {
     }
 }
 // ─────────────────────────────────────────────
-// Modo MULTI: varias tablas en un mismo article
+// Modo MULTI: varias tablas independientes
+// Mismo comportamiento que modo "matrix":
+//   Flechas → navegan dentro de la tabla activa
+//   Espacio  → inserta columna
+//   Enter    → inserta fila
+//   Backspace sobre celda vacía → elimina fila/columna vacía
 // ─────────────────────────────────────────────
 
-let _multiTables   = [];   // Set de IDs de tablas permitidas
+let _multiTables   = [];   // IDs de tablas permitidas
 let _multiArticle  = null;
 let _multiHandlers = {};
 
+// Obtiene la tabla <table> que contiene el elemento, si está en la lista permitida
 function _multiGetTable(el) {
-    const td = el.closest('td');
-    if (!td) return null;
-    const table = td.closest('table');
+    const table = el.closest('table');
     if (!table) return null;
     if (_multiTables.length && !_multiTables.includes(table.id)) return null;
     return table;
 }
 
-function _multiMousedown(e) {
-    const target = e.target;
-    if (target.classList.contains('cell-input')) return;
-
-    let span = null, td = null;
-    if (target.classList.contains('cell-span'))        { span = target;                     td = target.closest('td'); }
-    else if (target.closest('.cell-span'))             { span = target.closest('.cell-span'); td = span.closest('td'); }
-    else if (target.tagName === 'TD')                  { td = target;   span = td.querySelector('.cell-span'); }
-    else if (target.closest('td'))                     { td = target.closest('td'); span = td?.querySelector('.cell-span'); }
-
-    if (!td || !span) return;
-    const table = _multiGetTable(td);
-    if (!table) return;
-
-    e.preventDefault();
-
-    // Cerrar inputs de OTRAS tablas también
+// Cierra todos los inputs excepto el de la celda destino
+function _multiCloseOtherInputs(exceptTd) {
+    if (!_multiArticle) return;
     _multiArticle.querySelectorAll('.cell-input').forEach(inp => {
-        if (inp.closest('td') !== td) {
-            inputToSpan(inp);
-        }
+        if (inp.closest('td') !== exceptTd) inputToSpan(inp);
     });
-
-    const input = spanToInput(span);
-    if (input) { input.focus(); input.select(); }
 }
 
-function _multiKeydown(e) {
+// Mueve el foco a (r, c) dentro de una tabla
+function _multiMoveTo(table, r, c) {
+    if (r < 0 || r >= table.rows.length) return;
+    const row = table.rows[r];
+    if (!row || c < 0 || c >= row.cells.length) return;
+    const cell = row.cells[c];
+    const span  = cell.querySelector('.cell-span');
+    const input = cell.querySelector('.cell-input');
+    if (span)  { const inp = spanToInput(span); if (inp) { inp.focus(); inp.select(); } }
+    else if (input) { input.focus(); input.select(); }
+}
+
+// Ajusta el ancho de todas las columnas de una tabla
+function _multiAjustarTabla(table) {
+    if (!table) return;
+    const numCols = table.rows[0]?.cells.length ?? 0;
+    for (let j = 0; j < numCols; j++) ajustarAnchoColumna(table, j);
+}
+
+// Inserta una columna nueva después de c, mueve el foco allí
+function _multiNuevaColumna(table, r, c) {
+    Auxiliares.insertarColumna(table, c + 1);
+    _multiAjustarTabla(table);
+    setTimeout(() => _multiMoveTo(table, r, c + 1), 10);
+}
+
+// Inserta una fila nueva después de r, mueve el foco allí
+function _multiNuevaFila(table, r, c) {
+    Auxiliares.insertarFila(table, r + 1);
+    _multiAjustarTabla(table);
+    setTimeout(() => _multiMoveTo(table, r + 1, c), 10);
+}
+
+// Revisa si hay filas/columnas vacías y las elimina (igual que en modo matrix)
+function _multiRevisarBorrado(table, r, c) {
+    const minRows = parseInt(table.dataset.minRows) || 1;
+    const minCols = parseInt(table.dataset.minCols) || 1;
+
+    setTimeout(() => {
+        let tr = r, tc = c;
+
+        if (table.rows.length > minRows && Auxiliares.filaVacia(table, r)) {
+            Auxiliares.eliminarFila(table, r);
+            tr = Math.max(0, Math.min(r - 1, table.rows.length - 1));
+        }
+        const numCols = table.rows[0]?.cells.length ?? 0;
+        if (numCols > minCols && Auxiliares.columnaVacia(table, c)) {
+            Auxiliares.eliminarColumna(table, c);
+            tc = Math.max(0, Math.min(c - 1, (table.rows[0]?.cells.length ?? 1) - 1));
+        }
+
+        // Si no se borró nada, retroceder una celda
+        if (tr === r && tc === c) {
+            if (c > 0) tc = c - 1;
+            else if (r > 0) { tr = r - 1; tc = (table.rows[tr]?.cells.length ?? 1) - 1; }
+        }
+
+        _multiMoveTo(table, tr, tc);
+        // Notificar recálculo a transformaciones si está activo
+        if (_multiArticle) _multiArticle.dispatchEvent(new CustomEvent('tf:recalcular'));
+    }, 0);
+}
+
+// ── handler: mousedown ──────────────────────────────────────────────────────
+
+function _multiMousedown(e) {
     const target = e.target;
+    if (target.classList.contains('cell-input')) return; // ya tiene foco
+
+    let span = null, td = null;
+    if      (target.classList.contains('cell-span'))  { span = target;                      td = target.closest('td'); }
+    else if (target.closest('.cell-span'))            { span = target.closest('.cell-span'); td = span.closest('td');  }
+    else if (target.tagName === 'TD')                 { td = target;  span = td.querySelector('.cell-span');           }
+    else if (target.closest('td'))                    { td = target.closest('td'); span = td?.querySelector('.cell-span'); }
+
+    if (!td || !span) return;
+    if (!_multiGetTable(td)) return;
+
+    e.preventDefault();
+    _multiCloseOtherInputs(td);
+
+    const inp = spanToInput(span);
+    if (inp) { inp.focus(); inp.select(); }
+}
+
+// ── handler: keydown ────────────────────────────────────────────────────────
+
+function _multiKeydown(e) {
+    const target  = e.target;
     const isInput = target.classList.contains('cell-input');
     const isSpan  = target.classList.contains('cell-span');
     if (!isInput && !isSpan) return;
@@ -875,11 +947,13 @@ function _multiKeydown(e) {
     if (!table) return;
 
     const td  = target.closest('td');
-    const row = td.parentElement;
-    const r   = row.rowIndex;
-    const c   = td.cellIndex;
+    const row = td?.parentElement;
+    if (!td || !row) return;
+    const r = row.rowIndex;
+    const c = td.cellIndex;
 
-    if (e.key === 'Tab' || e.key === 'ArrowRight') {
+    // ── Flechas ────────────────────────────────────────────────────────────
+    if (e.key === 'ArrowRight') {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         const maxC = (table.rows[r]?.cells.length ?? 1) - 1;
@@ -906,78 +980,133 @@ function _multiKeydown(e) {
         if (r < table.rows.length - 1) _multiMoveTo(table, r + 1, Math.min(c, (table.rows[r+1]?.cells.length ?? 1) - 1));
         return;
     }
-    if (e.key === 'Enter') {
+
+    // ── Tab ────────────────────────────────────────────────────────────────
+    if (e.key === 'Tab') {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
-        if (r < table.rows.length - 1) _multiMoveTo(table, r + 1, c);
+        const maxC = (table.rows[r]?.cells.length ?? 1) - 1;
+        if (c < maxC) _multiMoveTo(table, r, c + 1);
+        else if (r < table.rows.length - 1) _multiMoveTo(table, r + 1, 0);
         return;
     }
+
+    // ── Escape ─────────────────────────────────────────────────────────────
     if (e.key === 'Escape') {
         if (isInput) { inputToSpan(target); target.blur(); }
         return;
     }
-    if ((e.key === 'Backspace' || e.key === 'Delete') && isInput && target.value === '') {
+
+    // ── Espacio → nueva columna ────────────────────────────────────────────
+    if (e.key === ' ') {
         e.preventDefault();
-        inputToSpan(target);
-        if (c > 0) _multiMoveTo(table, r, c - 1);
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        _multiNuevaColumna(table, r, c);
         return;
     }
-    // Tecla imprimible sobre span → abrir input
+
+    // ── Enter → nueva fila ─────────────────────────────────────────────────
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        _multiNuevaFila(table, r, c);
+        return;
+    }
+
+    // ── Backspace / Delete ─────────────────────────────────────────────────
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+        if (isInput) {
+            if (target.value !== '') return; // dejar que el input maneje
+            e.preventDefault();
+            const empty = crearSpanCelda('', r, c);
+            target.replaceWith(empty);
+            _multiRevisarBorrado(table, r, c);
+        } else if (isSpan) {
+            e.preventDefault();
+            span.setAttribute('data-value', '');
+            span.innerHTML = '';
+            _multiRevisarBorrado(table, r, c);
+        }
+        return;
+    }
+
+    // ── Tecla imprimible sobre span → abrir input ──────────────────────────
     if (isSpan && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(e.key)) return;
-        const inp = spanToInput(span_from_td(td));
+        const spanEl = td.querySelector('.cell-span');
+        const inp = spanEl ? spanToInput(spanEl) : null;
         if (inp) { inp.value = e.key; inp.setSelectionRange(1, 1); }
+        return;
     }
 }
 
-function span_from_td(td) { return td?.querySelector('.cell-span') ?? null; }
-
-function _multiMoveTo(table, r, c) {
-    if (r < 0 || r >= table.rows.length) return;
-    const cell = table.rows[r]?.cells[c];
-    if (!cell) return;
-    const span = cell.querySelector('.cell-span');
-    const input = cell.querySelector('.cell-input');
-    if (span) { const inp = spanToInput(span); if (inp) { inp.focus(); inp.select(); } }
-    else if (input) { input.focus(); input.select(); }
-}
+// ── handler: input ──────────────────────────────────────────────────────────
 
 function _multiInput(e) {
     const input = e.target;
     if (!input.classList.contains('cell-input')) return;
-    const table = _multiGetTable(input);
-    if (!table) return;
+    if (!_multiGetTable(input)) return;
 
     let v = input.value;
-    v = v.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '').replace(/[^0-9\-\/\.]/g, '');
+
+    // Eliminar letras
+    v = v.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
+    // Solo dígitos, -, /, .
+    v = v.replace(/[^0-9\-\/\.]/g, '');
+    // Máximo una barra
     const slashes = (v.match(/\//g) || []).length;
-    if (slashes > 1) { const f = v.indexOf('/'); v = v.slice(0, f + 1) + v.slice(f + 1).replace(/\//g, ''); }
+    if (slashes > 1) {
+        const f = v.indexOf('/');
+        v = v.slice(0, f + 1) + v.slice(f + 1).replace(/\//g, '');
+    }
+    // 0.5 → 0.5 (ya está bien), pero .5 → 0.5
+    if (/^\.\d/.test(v))  v = '0' + v;
+    if (/^-\.\d/.test(v)) v = '-0' + v.slice(1);
+
     if (input.value !== v) input.value = v;
     input.style.width = (v.length + 1) + 'ch';
 }
+
+// ── handler: focusout ───────────────────────────────────────────────────────
 
 function _multiFocusout(e) {
     const input = e.target;
     if (!input.classList.contains('cell-input')) return;
     const table = _multiGetTable(input);
     if (!table) return;
+    const c = input.closest('td')?.cellIndex ?? 0;
     inputToSpan(input);
-    ajustarAnchoColumna(table, input.closest('td')?.cellIndex ?? 0);
+    ajustarAnchoColumna(table, c);
 }
+
+// ── handler: beforeinput (espacio en móvil) ─────────────────────────────────
 
 function _multiBeforeInput(e) {
     const input = e.target;
     if (!input?.classList.contains('cell-input')) return;
+    if (!_multiGetTable(input)) return;
     if (e.inputType === 'insertText' && /\s/.test(e.data || '')) {
         e.preventDefault();
         input.value = input.value.replace(/\s+/g, '');
+        const td  = input.closest('td');
+        const row = td?.parentElement;
+        const r   = row?.rowIndex ?? 0;
+        const c   = td?.cellIndex ?? 0;
+        const table = _multiGetTable(input);
+        if (!table) return;
+        inputToSpan(input);
+        ajustarAnchoColumna(table, c);
+        _multiNuevaColumna(table, r, c);
     }
 }
 
-/** Configura eventos para múltiples tablas editables en el mismo article.
- *  @param {HTMLElement} article  - contenedor raíz
- *  @param {string[]}    tableIds - IDs de las tablas a manejar ([] = todas en el article)
+// ── API pública ─────────────────────────────────────────────────────────────
+
+/**
+ * Configura eventos para múltiples tablas editables independientes.
+ * @param {HTMLElement} article   - contenedor raíz donde escuchar eventos
+ * @param {string[]}    tableIds  - IDs de las tablas permitidas ([] = todas)
  */
 export function configurarEventosMulti(article, tableIds = []) {
     desconfigurarEventosMulti();
@@ -1013,7 +1142,7 @@ export function desconfigurarEventosMulti() {
     if (h.focusout)    _multiArticle.removeEventListener('focusout',    h.focusout);
     if (h.beforeinput) _multiArticle.removeEventListener('beforeinput', h.beforeinput);
     if (h.windowKey)   window.removeEventListener('keydown',            h.windowKey);
-    _multiArticle = null;
-    _multiTables  = [];
+    _multiArticle  = null;
+    _multiTables   = [];
     _multiHandlers = {};
 }

@@ -21,7 +21,7 @@ function crearTablaEditable(key, rows, cols) {
     const table = UI.createTable(cfg.id);
     table.dataset.minRows = "1";
     table.dataset.minCols = "1";
-    table.classList.add("tf-matrix-table");
+    table.classList.add("tf-input-table");   // usa mismos estilos que #inputTable
 
     for (let i = 0; i < rows; i++) {
         const tr = UI.createRow();
@@ -148,7 +148,7 @@ function crearBloqueMatrizEditable(key, simbolo) {
     label.innerHTML = `${cfg.label} <span class="tf-symbol">[${simbolo}]</span> =`;
     
     const matrixContainer = document.createElement("div");
-    matrixContainer.className = "tf-matrix-container";
+    matrixContainer.className = "tf-matrix-container tableMain";   // [ ] brackets via CSS
     const table = crearTablaEditable(key, cfg.rows, cfg.cols);
     matrixContainer.appendChild(table);
     
@@ -455,6 +455,7 @@ export function inicializarTransformaciones(article) {
     configurarEventosMulti(article, tableIds);
 
     article.addEventListener("focusout", _onCeldaFocusout);
+    article.addEventListener("tf:recalcular", actualizarMatricesDerivadas);
 
     actualizarMatricesDerivadas();
 }
@@ -474,6 +475,7 @@ export function limpiarTransformaciones() {
     });
     if (_article) {
         _article.removeEventListener("focusout", _onCeldaFocusout);
+        _article.removeEventListener("tf:recalcular", actualizarMatricesDerivadas);
     }
     desconfigurarEventosMulti();
     _article = null;
