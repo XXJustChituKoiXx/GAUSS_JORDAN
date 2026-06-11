@@ -5,7 +5,6 @@ import { configurarEventosMulti, desconfigurarEventosMulti } from "./eventos_cel
 import { matrizCambioBase, matrizTransformacion } from "./calculos.js";
 import { multiplicarMatrices } from "./operaciones.js";
 
-// ─── estado del módulo ────────────────────────────────────────────────────────
 const MATRICES = {
     B1: { id: "tfB1", label: "B₁", rows: 2, cols: 2, locked: false, isIdentity: false },
     B2: { id: "tfB2", label: "B₂", rows: 2, cols: 2, locked: false, isIdentity: false },
@@ -16,8 +15,6 @@ const MATRICES = {
 let activeV = null;
 let activeW = null;
 let _article = null;
-
-// ─── helpers DOM ──────────────────────────────────────────────────────────────
 
 function crearTablaEditable(key, rows, cols) {
     const cfg = MATRICES[key];
@@ -272,8 +269,6 @@ function actualizarMatricesDerivadas() {
     renderizarResultados(P, Q, A, C);
 }
 
-// ─── render de resultados con notación ────────────────────────────────────────
-
 function renderizarResultados(P, Q, A, C) {
     renderMatrizDerivada("zone_P", "P", "B₁→B₂", P);
     renderMatrizDerivada("zone_Q", "Q", "B₃→B₄", Q);
@@ -312,8 +307,6 @@ function renderMatrizDerivada(zoneId, nombre, subindice, matriz) {
     }
     zone.appendChild(row);
 }
-
-// ─── layout principal (3 columnas) ───────────────────────────────────────────
 
 export function inicializarTransformaciones(article) {
     _article = article;
