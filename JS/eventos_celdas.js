@@ -408,6 +408,32 @@ function _matrixStructBackspace(e, table, input) {
     }
 }
 
+
+function _valorCeldaVacioOCero(cell) {
+    const input = cell?.querySelector("input");
+    const span = cell?.querySelector(".cell-span");
+    const valor = (input?.value ?? span?.getAttribute("data-value") ?? span?.textContent ?? "").trim();
+
+    if (valor === "") return true;
+
+    try {
+        return Auxiliares.parsearFraccion(valor).num === 0;
+    } catch {
+        return false;
+    }
+}
+
+function _filaVaciaOCero(table, rowIndex) {
+    const row = table?.rows[rowIndex];
+    if (!row) return true;
+    return Array.from(row.cells).every(_valorCeldaVacioOCero);
+}
+
+function _columnaVaciaOCero(table, colIndex) {
+    if (!table?.rows?.length) return true;
+    return Array.from(table.rows).every(row => _valorCeldaVacioOCero(row.cells[colIndex]));
+}
+
 function _matrixRevisarBorrado(table, rowIndex, colIndex) {
     const minRows  = parseInt(table.dataset.minRows) || 1;
     const minCols  = parseInt(table.dataset.minCols) || 1;
@@ -416,13 +442,13 @@ function _matrixRevisarBorrado(table, rowIndex, colIndex) {
     setTimeout(() => {
         let tr = rowIndex, tc = colIndex;
 
-        if (table.rows.length > minRows && Auxiliares.filaVacia(table, rowIndex)) {
+        if (table.rows.length > minRows && _filaVaciaOCero(table, rowIndex)) {
             Auxiliares.eliminarFila(table, rowIndex);
             tr = Math.max(0, Math.min(rowIndex - 1, table.rows.length - 1));
             if (currentOp === "axb") actualizarSeparadorGlobal(table);
         }
 
-        if ((table.rows[0]?.cells.length ?? 0) > minCols && Auxiliares.columnaVacia(table, colIndex)) {
+        if ((table.rows[0]?.cells.length ?? 0) > minCols && _columnaVaciaOCero(table, colIndex)) {
             Auxiliares.eliminarColumna(table, colIndex);
             tc = Math.max(0, Math.min(colIndex - 1, (table.rows[0]?.cells.length ?? 1) - 1));
             if (currentOp === "axb") actualizarSeparadorGlobal(table);
