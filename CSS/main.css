@@ -3253,3 +3253,541 @@ body.light .logo-modo-claro {
     border-radius: 8px;
     white-space: nowrap;
 }
+
+/* ================================================================
+   AJUSTES DE RECUPERACIÓN FINAL — INTERFAZ UNIFORME
+   ================================================================ */
+:root {
+    --switch-danger: #ff546c;
+    --math-label-size: clamp(1.28rem, 1.45vw, 1.55rem);
+    --math-label-weight: 500;
+}
+
+/* El programa debe verse uniforme: apartados y funciones sin peso excesivo */
+.top-nav-btn,
+.aside-function-list .btn,
+.help-btn,
+.btn,
+.btnCalcular,
+.btnBasicasSecundario {
+    font-weight: 400 !important;
+}
+
+/* Notación de matrices/bases: mismo tamaño, misma familia, mismo peso */
+.basic-matrix-label,
+.cambio-base-matrix-label,
+.tf-matrix-label,
+.tf-derived-label,
+.result-label,
+.resultado-matriz-label,
+.base-completa-label,
+.canonical-switch-symbol {
+    font-family: "Cambria Math", "STIX Two Math", "Times New Roman", serif !important;
+    font-size: var(--math-label-size) !important;
+    font-weight: var(--math-label-weight) !important;
+    font-style: italic;
+    letter-spacing: 0;
+    line-height: 1.1;
+    color: var(--primary);
+}
+
+.tf-symbol,
+.tf-matrix-label sub,
+.tf-derived-label sub,
+.result-label sub {
+    font-size: 0.62em;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+#resultSection .result-label,
+.tf-derived-label {
+    color: var(--success);
+}
+
+.basic-matrix-label,
+.cambio-base-matrix-label,
+.tf-matrix-label {
+    white-space: nowrap;
+}
+
+/* Alertas con una sola paleta visual */
+.resultado-mensaje,
+.mensaje-exito,
+.mensaje-error,
+.error-message,
+.tf-derived-error,
+.tf-derived-placeholder,
+.base-completa-mensaje,
+.base-completa-info {
+    border-radius: 12px !important;
+    font-size: 0.98rem !important;
+    font-weight: 500 !important;
+    line-height: 1.45 !important;
+    letter-spacing: 0 !important;
+}
+
+.resultado-mensaje,
+.error-message,
+.tf-derived-error,
+.tf-derived-placeholder {
+    padding: 0.9rem 1rem !important;
+}
+
+.error-message,
+.mensaje-error,
+.tf-derived-error {
+    background: var(--error-bg) !important;
+    color: var(--error) !important;
+    border-left: 4px solid var(--error) !important;
+}
+
+.mensaje-exito,
+.base-completa-mensaje,
+.base-completa-info {
+    background: rgba(0, 200, 160, 0.12) !important;
+    color: var(--success) !important;
+    border-left: 4px solid var(--success) !important;
+}
+
+.tf-derived-placeholder {
+    background: var(--bg-page) !important;
+    color: var(--text-secondary) !important;
+    border: 1px dashed var(--border) !important;
+}
+
+/* Switch de tema centrado y sincronizado */
+#themeToggle.theme-switch {
+    position: relative !important;
+    display: inline-grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    align-items: center !important;
+    justify-items: center !important;
+    width: 84px !important;
+    height: 44px !important;
+    padding: 0 5px !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+}
+
+#themeToggle.theme-switch .theme-icon {
+    width: 34px !important;
+    height: 34px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2 !important;
+    filter: none !important;
+}
+
+#themeToggle.theme-switch .theme-icon svg {
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
+    stroke: currentColor !important;
+    fill: none !important;
+    stroke-width: 2 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+#themeToggle.theme-switch .theme-thumb {
+    top: 5px !important;
+    left: 5px !important;
+    width: 34px !important;
+    height: 34px !important;
+    transform: translateX(40px) !important;
+    transition: transform 0.32s ease, background-color 0.32s ease, box-shadow 0.32s ease !important;
+}
+
+#themeToggle.theme-switch.is-light .theme-thumb {
+    left: 5px !important;
+    transform: translateX(0) !important;
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-icon.sun {
+    color: var(--switch-danger) !important;
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
+    color: #ffffff !important;
+}
+
+body.light #themeToggle.theme-switch .theme-icon.sun {
+    color: #ffffff !important;
+}
+
+body.light #themeToggle.theme-switch .theme-icon.moon {
+    color: var(--primary) !important;
+}
+
+/* Switch de base canónica: usado en Cambio de base y Transformaciones */
+.canonical-switch-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.canonical-switch-symbol {
+    font-style: normal !important;
+    color: var(--primary) !important;
+}
+
+.canonical-switch-wrapper.is-active .canonical-switch-symbol {
+    transform: scale(1.04);
+}
+
+.canonical-switch-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.canonical-switch-visual {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 58px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-surface);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.canonical-switch-knob {
+    position: absolute;
+    left: 4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    box-shadow: 0 5px 12px rgba(0,0,0,0.18);
+    transition: transform 0.25s ease, background 0.25s ease;
+}
+
+.canonical-switch-input:checked + .canonical-switch-visual {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    box-shadow: 0 8px 18px var(--accent-glow);
+}
+
+.canonical-switch-input:checked + .canonical-switch-visual .canonical-switch-knob {
+    transform: translateX(26px);
+    background: #fff;
+}
+
+.canonical-switch-input:focus-visible + .canonical-switch-visual {
+    outline: 3px solid var(--accent-glow);
+    outline-offset: 3px;
+}
+
+/* Cambio de base */
+.cambio-base-section,
+.basic-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.cambio-base-zone,
+.basic-matrices-zone {
+    justify-content: center;
+    align-items: center;
+}
+
+.cambio-base-card,
+.basic-matrix-card {
+    justify-content: center;
+}
+
+/* Transformaciones: layout estable sin depender del zoom */
+.tf-section {
+    width: 100%;
+    min-width: 0 !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.4rem;
+    padding: clamp(1rem, 2vw, 2rem);
+    overflow-x: auto;
+}
+
+.tf-formula {
+    text-align: center;
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.4rem;
+}
+
+.tf-diagram {
+    display: grid;
+    grid-template-columns: minmax(260px, auto) minmax(180px, auto) minmax(260px, auto);
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1rem, 2vw, 2rem);
+    width: max-content;
+    max-width: 100%;
+}
+
+.tf-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.tf-espacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.05rem;
+    padding: 1.1rem 1.25rem;
+    border: 2px solid var(--primary);
+    border-radius: 18px;
+    background: rgba(255,255,255,0.02);
+}
+
+body.light .tf-espacio {
+    background: rgba(108, 99, 255, 0.035);
+}
+
+.tf-espacio-label {
+    font-weight: 500 !important;
+    font-size: 0.9rem;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.tf-matrix-block {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+    position: relative !important;
+    padding: 0.9rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 16px !important;
+    background: var(--bg-surface) !important;
+    box-shadow: none !important;
+}
+
+.tf-matrix-header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.tf-matrix-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+}
+
+.tf-matrix-container.tableMain,
+.basic-matrix-container,
+.result-matrix-container {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tf-input-table {
+    border-spacing: 8px;
+}
+
+.tf-input-table td {
+    padding: 0;
+    min-width: 72px;
+    height: 54px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.tf-input-table .cell-input,
+.tf-input-table .cell-span,
+.basic-input-table .cell-input,
+.basic-input-table .cell-span,
+.cambio-base-table .cell-input,
+.cambio-base-table .cell-span {
+    font-weight: 400 !important;
+}
+
+.tf-arrow-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+    color: var(--text-secondary);
+}
+
+.tf-arrow-vertical .arrow-symbol,
+.tf-long-arrow-horizontal {
+    color: var(--primary);
+    font-weight: 400;
+}
+
+.tf-arrow-vertical .arrow-symbol {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.tf-arrow-vertical .arrow-label {
+    font-weight: 400;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.tf-center-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0 0.8rem;
+}
+
+.tf-long-arrow-horizontal {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.tf-result-zone {
+    display: flex;
+    justify-content: center;
+    max-width: 100%;
+}
+
+.tf-derived-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.tf-derived-error {
+    max-width: 320px;
+    text-align: left;
+}
+
+.tf-bottom-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1rem, 4vw, 4rem);
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 980px;
+    margin-top: 0.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 980px) {
+    .tf-section {
+        align-items: flex-start;
+    }
+
+    .tf-diagram {
+        grid-template-columns: 1fr;
+        width: 100%;
+        justify-items: center;
+    }
+
+    .tf-center-column {
+        order: 2;
+    }
+}
+
+@media (max-width: 768px) {
+    #themeToggle.theme-switch {
+        width: 78px !important;
+        height: 40px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon {
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    #themeToggle.theme-switch .theme-thumb {
+        width: 30px !important;
+        height: 30px !important;
+        transform: translateX(38px) !important;
+    }
+
+    #themeToggle.theme-switch.is-light .theme-thumb {
+        transform: translateX(0) !important;
+    }
+
+    .tf-input-table td,
+    .basic-input-table td,
+    .cambio-base-table td {
+        min-width: 64px;
+        height: 50px;
+    }
+}
+
+@media (max-width: 520px) {
+    #hearder {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "brand actions"
+            "nav nav";
+        align-items: center;
+    }
+
+    .brand { justify-content: flex-start; }
+    .header-actions { justify-content: flex-end; flex-wrap: nowrap; }
+    .top-nav { grid-area: nav; }
+
+    #themeToggle.theme-switch {
+        width: 74px !important;
+        height: 38px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon {
+        width: 28px !important;
+        height: 28px !important;
+    }
+
+    #themeToggle.theme-switch .theme-thumb {
+        width: 28px !important;
+        height: 28px !important;
+        transform: translateX(36px) !important;
+    }
+
+    #themeToggle.theme-switch.is-light .theme-thumb {
+        transform: translateX(0) !important;
+    }
+
+    .tf-matrix-row,
+    .cambio-base-matrix-row,
+    .basic-matrix-card {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+
+    .tf-input-table td,
+    .basic-input-table td,
+    .cambio-base-table td {
+        min-width: 56px;
+        height: 44px;
+    }
+}
