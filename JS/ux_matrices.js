@@ -269,8 +269,7 @@ function limpiarMatrizActual(table) {
 function mostrarError(container, mensaje) {
     const errorDiv = document.createElement("div");
     errorDiv.className = "error-message";
-    errorDiv.style.cssText = "padding: 10px; background-color: #f8d7da; color: #721c24; border-radius: 5px; margin-top: 20px;";
-    errorDiv.innerHTML = `<strong>Error:</strong> ${mensaje}`;
+    errorDiv.textContent = `Error: ${mensaje}`;
     container.appendChild(errorDiv);
 }
 
