@@ -665,7 +665,7 @@ function crearMatrizCambioBaseEditable(id, labelText, filas = 2, columnas = 2) {
 
     const label = document.createElement("div");
     label.className = "basic-matrix-label cambio-base-matrix-label";
-    label.textContent = `${labelText} =`;
+    label.innerHTML = `${labelText}=`;
 
     const container = document.createElement("div");
     container.className = "basic-matrix-container";
@@ -954,6 +954,25 @@ function reconstruirMatrizCanonicaCambioBase(table, dimension) {
     marcarSwitchCanonicoCambioBase(table, true);
 }
 
+function reconstruirMatrizVaciaCambioBase(table, filas = 2, columnas = 2) {
+    if (!table) return;
+    table.innerHTML = "";
+    table.dataset.minRows = "1";
+    table.dataset.minCols = "1";
+
+    for (let i = 0; i < filas; i++) {
+        const tr = document.createElement("tr");
+        for (let j = 0; j < columnas; j++) {
+            tr.appendChild(crearTdCambioBase(i, j));
+        }
+        table.appendChild(tr);
+    }
+
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    marcarSwitchCanonicoCambioBase(table, false);
+}
+
 function limpiarTablaCambioBase(table) {
     if (!table) return;
 
@@ -1214,11 +1233,11 @@ function validarDimensionesCambioBase(baseOrigen, baseDestino) {
     const dimDestino = dimensionesMatrizCambio(baseDestino);
 
     if (dimOrigen.filas !== dimDestino.filas || dimOrigen.columnas !== dimDestino.columnas) {
-        throw new Error(`La base de origen B y la base de destino C deben tener el mismo tamaño para calcular el cambio. Actualmente B es ${dimOrigen.filas}×${dimOrigen.columnas} y C es ${dimDestino.filas}×${dimDestino.columnas}.`);
+        throw new Error(`La base B1 y la base B2 deben tener el mismo tamaño para calcular el cambio. Actualmente B1 es ${dimOrigen.filas}×${dimOrigen.columnas} y B2 es ${dimDestino.filas}×${dimDestino.columnas}.`);
     }
 
-    validarBaseLICambioBase("B", baseOrigen);
-    validarBaseLICambioBase("C", baseDestino);
+    validarBaseLICambioBase("B1", baseOrigen);
+    validarBaseLICambioBase("B2", baseDestino);
 }
 
 function crearFraccionHTMLCambioBase(valor) {
@@ -1287,7 +1306,7 @@ function mostrarErrorCambioBase(article, mensaje) {
 }
 
 function limpiarCambioBase() {
-    document.querySelectorAll("#mainSection .cambio-base-table").forEach(limpiarTablaCambioBase);
+    document.querySelectorAll("#mainSection .cambio-base-table").forEach(table => reconstruirMatrizVaciaCambioBase(table, 2, 2));
     document.getElementById("resultadoEVSection")?.remove();
 
     const firstTable = document.querySelector("#mainSection .cambio-base-table");
@@ -1301,8 +1320,8 @@ function renderCambioBase(article) {
     const matricesZone = document.createElement("div");
     matricesZone.className = "cambio-base-zone";
     matricesZone.append(
-        crearMatrizCambioBaseEditable("baseOrigenTable", "B", 2, 2),
-        crearMatrizCambioBaseEditable("baseDestinoTable", "C", 2, 2)
+        crearMatrizCambioBaseEditable("baseOrigenTable", "B<sub>1</sub>", 2, 2),
+        crearMatrizCambioBaseEditable("baseDestinoTable", "B<sub>2</sub>", 2, 2)
     );
 
     const actions = document.createElement("div");
@@ -1330,8 +1349,8 @@ function renderCambioBase(article) {
         try {
             finalizarEntradasCambioBase();
 
-            const baseOrigen = leerMatrizCambioBase("baseOrigenTable", "B");
-            const baseDestino = leerMatrizCambioBase("baseDestinoTable", "C");
+            const baseOrigen = leerMatrizCambioBase("baseOrigenTable", "B1");
+            const baseDestino = leerMatrizCambioBase("baseDestinoTable", "B2");
 
             validarDimensionesCambioBase(baseOrigen, baseDestino);
 
