@@ -190,6 +190,20 @@ function buildAside() {
             }));
         });
     }
+    else if (currentModule === "transformaciones") {
+        const ops = [
+            { id: "btnTransformacionesLineales", text: "Transformaciones lineales" }
+        ];
+
+        ops.forEach(op => {
+            ul.appendChild(createAsideButton(op, () => {
+                currentAsideSelection = op.id;
+                limpiarTransformaciones();
+                inicializarTransformaciones(article);
+                updateSelection(op.id);
+            }));
+        });
+    }
 
     aside.appendChild(ul);
 
@@ -236,9 +250,10 @@ function switchModule(module) {
         updateSelection("btnSuma");
     }
     else if (module === "transformaciones") {
-        currentAsideSelection = "";
+        currentAsideSelection = "btnTransformacionesLineales";
         limpiarTransformaciones();
         inicializarTransformaciones(article);
+        updateSelection("btnTransformacionesLineales");
     }
     else if (module === "diagonalizacion") {
         currentAsideSelection = "";
