@@ -780,9 +780,15 @@ function insertarColumnaCambioBase(table, rowIndex, colIndex) {
 function celdaVaciaCambioBase(cell) {
     const input = cell?.querySelector(".cell-input");
     const span = cell?.querySelector(".cell-span");
-    if (input) return input.value.trim() === "";
-    if (span) return (span.getAttribute("data-value") || "") === "";
-    return true;
+    const valor = (input?.value ?? span?.getAttribute("data-value") ?? span?.textContent ?? "").trim();
+
+    if (valor === "") return true;
+
+    try {
+        return Auxiliares.parsearFraccion(valor).num === 0;
+    } catch {
+        return false;
+    }
 }
 
 function filaVaciaCambioBase(table, rowIndex) {
@@ -1191,21 +1197,28 @@ function dimensionesMatrizCambio(matriz) {
     return { filas: matriz.length, columnas: matriz[0]?.length || 0 };
 }
 
+function validarBaseLICambioBase(nombre, matriz) {
+    if (!matriz || !matriz.length || !matriz[0]?.length) {
+        throw new Error(`La base ${nombre} está vacía.`);
+    }
+
+    const matrizConCeros = matriz.map(fila => [...fila, { num: 0, den: 1 }]);
+    const resultado = clasificarLIoLD(matrizConCeros);
+    if (!resultado.esLI) {
+        throw new Error(`La base ${nombre} no es válida: sus vectores son linealmente dependientes.`);
+    }
+}
+
 function validarDimensionesCambioBase(baseOrigen, baseDestino) {
     const dimOrigen = dimensionesMatrizCambio(baseOrigen);
     const dimDestino = dimensionesMatrizCambio(baseDestino);
 
-    if (dimOrigen.filas !== dimOrigen.columnas) {
-        throw new Error(`La base de origen B debe ser cuadrada. Actualmente B es ${dimOrigen.filas}×${dimOrigen.columnas}.`);
-    }
-
-    if (dimDestino.filas !== dimDestino.columnas) {
-        throw new Error(`La base de destino C debe ser cuadrada. Actualmente C es ${dimDestino.filas}×${dimDestino.columnas}.`);
-    }
-
     if (dimOrigen.filas !== dimDestino.filas || dimOrigen.columnas !== dimDestino.columnas) {
-        throw new Error(`La base de origen B y la base de destino C deben tener la misma dimensión. Actualmente B es ${dimOrigen.filas}×${dimOrigen.columnas} y C es ${dimDestino.filas}×${dimDestino.columnas}.`);
+        throw new Error(`La base de origen B y la base de destino C deben tener el mismo tamaño para calcular el cambio. Actualmente B es ${dimOrigen.filas}×${dimOrigen.columnas} y C es ${dimDestino.filas}×${dimDestino.columnas}.`);
     }
+
+    validarBaseLICambioBase("B", baseOrigen);
+    validarBaseLICambioBase("C", baseDestino);
 }
 
 function crearFraccionHTMLCambioBase(valor) {
@@ -1326,13 +1339,7 @@ function renderCambioBase(article) {
             try {
                 resultado = matrizCambioBase(baseOrigen, baseDestino);
             } catch (error) {
-                throw new Error(error.message || "La base de destino C no es invertible.");
-            }
-
-            try {
-                matrizCambioBase(baseDestino, baseOrigen);
-            } catch (error) {
-                throw new Error("La base de origen B no es invertible; sus vectores no forman una base.");
+                throw new Error("No se pudo calcular la matriz de cambio con las dimensiones actuales. Verifica que B y C pertenezcan al mismo espacio y tengan estructura compatible para este cálculo.");
             }
 
             mostrarResultadoCambioBase(article, resultado);
