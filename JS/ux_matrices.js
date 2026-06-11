@@ -43,6 +43,43 @@ export function setCurrentOperation(op) {
     currentOperation = op;
 }
 
+function obtenerDimensionesInicialesMatriz(modo = currentOperation) {
+    if (modo === "axb") return [2, 3];
+    if (modo === "inversa" || modo === "determinante") return [2, 2];
+    return [2, 2];
+}
+
+function reconstruirMatrizVacia(table, modo = currentOperation) {
+    if (!table) return;
+
+    const [filas, columnas] = obtenerDimensionesInicialesMatriz(modo);
+    table.innerHTML = "";
+
+    table.dataset.minRows = modo === "axb" ? "2" : "1";
+    table.dataset.minCols = modo === "axb" ? "3" : "1";
+
+    for (let i = 0; i < filas; i++) {
+        const row = UI.createRow(`row${i}`);
+        for (let j = 0; j < columnas; j++) {
+            const cell = UI.createTd(`cell${i}${j}`);
+            cell.appendChild(crearSpanCelda("", i, j));
+            row.appendChild(cell);
+        }
+        table.appendChild(row);
+    }
+}
+
+function enfocarPrimeraCeldaMatriz(table) {
+    const firstSpan = table?.querySelector(".cell-span");
+    if (!firstSpan) return;
+
+    const input = spanToInput(firstSpan);
+    if (input) {
+        input.focus();
+        input.select();
+    }
+}
+
 // En ux_matrices.js, modifica la función inicializarMatriz:
 
 export function inicializarMatriz(article, modo) {
@@ -219,20 +256,14 @@ function limpiarResultados() {
 function limpiarMatrizActual(table) {
     if (!table) return;
 
-    const celdas = table.querySelectorAll(".cell-input, .cell-span");
-    celdas.forEach(celda => {
-        if (celda.classList.contains("cell-input")) {
-            celda.value = "0";
-        } else {
-            celda.setAttribute("data-value", "0");
-            celda.textContent = "0";
-        }
-    });
-
+    reconstruirMatrizVacia(table, currentOperation);
     ajustarTodaLaTabla(table);
+
     if (currentOperation === "axb") actualizarSeparadorGlobal(table);
     else eliminarSeparadorGlobal(table);
+
     limpiarResultados();
+    setTimeout(() => enfocarPrimeraCeldaMatriz(table), 20);
 }
 
 function mostrarError(container, mensaje) {
