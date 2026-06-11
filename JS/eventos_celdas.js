@@ -821,3 +821,199 @@ export function ajustarAnchoColumna(table, colIndex) {
         if (el) { el.style.width = w; el.style.minWidth = w; }
     }
 }
+// ─────────────────────────────────────────────
+// Modo MULTI: varias tablas en un mismo article
+// ─────────────────────────────────────────────
+
+let _multiTables   = [];   // Set de IDs de tablas permitidas
+let _multiArticle  = null;
+let _multiHandlers = {};
+
+function _multiGetTable(el) {
+    const td = el.closest('td');
+    if (!td) return null;
+    const table = td.closest('table');
+    if (!table) return null;
+    if (_multiTables.length && !_multiTables.includes(table.id)) return null;
+    return table;
+}
+
+function _multiMousedown(e) {
+    const target = e.target;
+    if (target.classList.contains('cell-input')) return;
+
+    let span = null, td = null;
+    if (target.classList.contains('cell-span'))        { span = target;                     td = target.closest('td'); }
+    else if (target.closest('.cell-span'))             { span = target.closest('.cell-span'); td = span.closest('td'); }
+    else if (target.tagName === 'TD')                  { td = target;   span = td.querySelector('.cell-span'); }
+    else if (target.closest('td'))                     { td = target.closest('td'); span = td?.querySelector('.cell-span'); }
+
+    if (!td || !span) return;
+    const table = _multiGetTable(td);
+    if (!table) return;
+
+    e.preventDefault();
+
+    // Cerrar inputs de OTRAS tablas también
+    _multiArticle.querySelectorAll('.cell-input').forEach(inp => {
+        if (inp.closest('td') !== td) {
+            inputToSpan(inp);
+        }
+    });
+
+    const input = spanToInput(span);
+    if (input) { input.focus(); input.select(); }
+}
+
+function _multiKeydown(e) {
+    const target = e.target;
+    const isInput = target.classList.contains('cell-input');
+    const isSpan  = target.classList.contains('cell-span');
+    if (!isInput && !isSpan) return;
+
+    const table = _multiGetTable(target);
+    if (!table) return;
+
+    const td  = target.closest('td');
+    const row = td.parentElement;
+    const r   = row.rowIndex;
+    const c   = td.cellIndex;
+
+    if (e.key === 'Tab' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        const maxC = (table.rows[r]?.cells.length ?? 1) - 1;
+        if (c < maxC) _multiMoveTo(table, r, c + 1);
+        else if (r < table.rows.length - 1) _multiMoveTo(table, r + 1, 0);
+        return;
+    }
+    if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        if (c > 0) _multiMoveTo(table, r, c - 1);
+        else if (r > 0) _multiMoveTo(table, r - 1, (table.rows[r-1]?.cells.length ?? 1) - 1);
+        return;
+    }
+    if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        if (r > 0) _multiMoveTo(table, r - 1, Math.min(c, (table.rows[r-1]?.cells.length ?? 1) - 1));
+        return;
+    }
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        if (r < table.rows.length - 1) _multiMoveTo(table, r + 1, Math.min(c, (table.rows[r+1]?.cells.length ?? 1) - 1));
+        return;
+    }
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
+        if (r < table.rows.length - 1) _multiMoveTo(table, r + 1, c);
+        return;
+    }
+    if (e.key === 'Escape') {
+        if (isInput) { inputToSpan(target); target.blur(); }
+        return;
+    }
+    if ((e.key === 'Backspace' || e.key === 'Delete') && isInput && target.value === '') {
+        e.preventDefault();
+        inputToSpan(target);
+        if (c > 0) _multiMoveTo(table, r, c - 1);
+        return;
+    }
+    // Tecla imprimible sobre span → abrir input
+    if (isSpan && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        e.preventDefault();
+        if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(e.key)) return;
+        const inp = spanToInput(span_from_td(td));
+        if (inp) { inp.value = e.key; inp.setSelectionRange(1, 1); }
+    }
+}
+
+function span_from_td(td) { return td?.querySelector('.cell-span') ?? null; }
+
+function _multiMoveTo(table, r, c) {
+    if (r < 0 || r >= table.rows.length) return;
+    const cell = table.rows[r]?.cells[c];
+    if (!cell) return;
+    const span = cell.querySelector('.cell-span');
+    const input = cell.querySelector('.cell-input');
+    if (span) { const inp = spanToInput(span); if (inp) { inp.focus(); inp.select(); } }
+    else if (input) { input.focus(); input.select(); }
+}
+
+function _multiInput(e) {
+    const input = e.target;
+    if (!input.classList.contains('cell-input')) return;
+    const table = _multiGetTable(input);
+    if (!table) return;
+
+    let v = input.value;
+    v = v.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '').replace(/[^0-9\-\/\.]/g, '');
+    const slashes = (v.match(/\//g) || []).length;
+    if (slashes > 1) { const f = v.indexOf('/'); v = v.slice(0, f + 1) + v.slice(f + 1).replace(/\//g, ''); }
+    if (input.value !== v) input.value = v;
+    input.style.width = (v.length + 1) + 'ch';
+}
+
+function _multiFocusout(e) {
+    const input = e.target;
+    if (!input.classList.contains('cell-input')) return;
+    const table = _multiGetTable(input);
+    if (!table) return;
+    inputToSpan(input);
+    ajustarAnchoColumna(table, input.closest('td')?.cellIndex ?? 0);
+}
+
+function _multiBeforeInput(e) {
+    const input = e.target;
+    if (!input?.classList.contains('cell-input')) return;
+    if (e.inputType === 'insertText' && /\s/.test(e.data || '')) {
+        e.preventDefault();
+        input.value = input.value.replace(/\s+/g, '');
+    }
+}
+
+/** Configura eventos para múltiples tablas editables en el mismo article.
+ *  @param {HTMLElement} article  - contenedor raíz
+ *  @param {string[]}    tableIds - IDs de las tablas a manejar ([] = todas en el article)
+ */
+export function configurarEventosMulti(article, tableIds = []) {
+    desconfigurarEventosMulti();
+    _multiArticle = article;
+    _multiTables  = tableIds;
+
+    _multiHandlers.mousedown   = _multiMousedown;
+    _multiHandlers.keydown     = _multiKeydown;
+    _multiHandlers.input       = _multiInput;
+    _multiHandlers.focusout    = _multiFocusout;
+    _multiHandlers.beforeinput = _multiBeforeInput;
+    _multiHandlers.windowKey   = (e) => {
+        if (e.key === ' ' && (
+            document.activeElement?.classList.contains('cell-input') ||
+            document.activeElement?.classList.contains('cell-span')
+        )) e.preventDefault();
+    };
+
+    article.addEventListener('mousedown',   _multiHandlers.mousedown);
+    article.addEventListener('keydown',     _multiHandlers.keydown);
+    article.addEventListener('input',       _multiHandlers.input);
+    article.addEventListener('focusout',    _multiHandlers.focusout);
+    article.addEventListener('beforeinput', _multiHandlers.beforeinput);
+    window.addEventListener('keydown',      _multiHandlers.windowKey);
+}
+
+export function desconfigurarEventosMulti() {
+    if (!_multiArticle) return;
+    const h = _multiHandlers;
+    if (h.mousedown)   _multiArticle.removeEventListener('mousedown',   h.mousedown);
+    if (h.keydown)     _multiArticle.removeEventListener('keydown',     h.keydown);
+    if (h.input)       _multiArticle.removeEventListener('input',       h.input);
+    if (h.focusout)    _multiArticle.removeEventListener('focusout',    h.focusout);
+    if (h.beforeinput) _multiArticle.removeEventListener('beforeinput', h.beforeinput);
+    if (h.windowKey)   window.removeEventListener('keydown',            h.windowKey);
+    _multiArticle = null;
+    _multiTables  = [];
+    _multiHandlers = {};
+}

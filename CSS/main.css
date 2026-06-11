@@ -170,7 +170,6 @@ section h2 {
     overflow: visible;
 }
 
-/* Bordes decorativos de matrices */
 #tableMain::before,
 #tableMain::after,
 .result-matrix-container::before,
@@ -221,7 +220,6 @@ section h2 {
     margin: 0 auto;
 }
 
-/* Celdas de entrada */
 #inputTable td {
     padding: 0;
     min-width: 75px;
@@ -274,7 +272,6 @@ section h2 {
     color: transparent;
 }
 
-/* Celdas de resultado */
 .result-table td {
     padding: 8px 16px;
     text-align: center;
@@ -477,7 +474,6 @@ body.light .btn-agregar-vector:hover {
 }
 
 /* ===== 8. NAVEGACIÓN ===== */
-/* ===== 8. NAVEGACIÓN ===== */
 .nav-group {
     display: flex;
     flex-wrap: wrap;
@@ -524,6 +520,7 @@ body.light .btn-agregar-vector:hover {
         padding: 0.5rem;
     }
 }
+
 /* ===== 9. DETERMINANTE ===== */
 .det-content {
     display: flex;
@@ -1038,7 +1035,6 @@ kbd {
 }
 
 /* ===== 13. PARÉNTESIS EN MATRICES ===== */
-
 #inputTable td:has(.paren-left),
 #inputTable td:has(.paren-right) {
     padding: 0;
@@ -1483,6 +1479,7 @@ kbd {
         font-size: 18px;
     }
 }
+
 /* ===== AJUSTES DE ARMONÍA VISUAL ===== */
 .result-table td {
     font-size: clamp(1.25rem, 2vw, 1.7rem);
@@ -1631,7 +1628,6 @@ kbd {
     }
 }
 
-
 /* ===== REFINAMIENTO VISUAL SOLICITADO ===== */
 .result-matrix-container {
     padding: 0.35rem 1.25rem;
@@ -1776,7 +1772,6 @@ kbd {
     }
 }
 
-
 /* ===== AJUSTES V4 - VECTORES Y MODAL DE TUTORIALES ===== */
 .ev-vector-table {
     border-collapse: separate !important;
@@ -1886,7 +1881,6 @@ kbd {
         width: calc(100% - 70px);
     }
 }
-
 
 /* ===== AJUSTES V5 - CENTRADO REAL DE VECTORES Y MODAL ===== */
 .ev-vector-table {
@@ -2037,7 +2031,6 @@ kbd {
     }
 }
 
-
 /* ===== AJUSTES V6 - CENTRADO FINO DE CAJAS RESPECTO A PARÉNTESIS ===== */
 .ev-vector-input-cell,
 .ev-vector-table .vector-componente-comma-cell {
@@ -2063,7 +2056,6 @@ kbd {
         top: 3px !important;
     }
 }
-
 
 /* ===== AJUSTES V7 - CENTRADO VERTICAL REAL EN VECTORES ===== */
 #inputTable.ev-vector-table .ev-vector-label-cell .vector-label,
@@ -2094,7 +2086,6 @@ kbd {
     }
 }
 
-
 /* ===== AJUSTES V9 - CENTRADO FINO DE CAJAS RESPECTO A PARÉNTESIS ===== */
 #inputTable.ev-vector-table .ev-vector-input-cell,
 #inputTable.ev-vector-table .vector-componente-comma-cell {
@@ -2124,7 +2115,6 @@ kbd {
     }
 }
 
-
 /* ===== AJUSTES V10 - FRACCIONES EN DETERMINANTE ===== */
 .factor-item .frac,
 .det-result-value .frac {
@@ -2149,7 +2139,6 @@ kbd {
 .det-result-value .frac .bottom {
     padding-top: 0.08em;
 }
-
 
 /* ===== AJUSTES V12 - COMAS DE COMPONENTES VECTORIALES ===== */
 #inputTable.ev-vector-table .vector-componente-comma-cell > .vector-componente-comma {
@@ -2187,16 +2176,10 @@ kbd {
 .tutorial-video{
     width: 100%;
     max-width: 1000px;
-
     border-radius: 22px;
-
     background: #000;
-
     display: block;
-
-    box-shadow:
-        0 0 25px rgba(0,0,0,.35);
-
+    box-shadow: 0 0 25px rgba(0,0,0,.35);
     object-fit: contain;
 }
 
@@ -2218,12 +2201,7 @@ input,
 #inputTable .cell-span,
 .basic-cell-input,
 .result-wrapper {
-    transition:
-        background-color 0.35s ease,
-        color 0.35s ease,
-        border-color 0.35s ease,
-        box-shadow 0.35s ease,
-        transform 0.2s ease;
+    transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, transform 0.2s ease;
 }
 
 body.theme-animating::before {
@@ -2983,6 +2961,473 @@ body.light .logo-modo-claro {
         overflow-x: auto;
     }
 }
+
 #inputTable td.separator {
     border-right: 2px solid var(--primary) !important;
+}
+
+/* ===== TRANSFORMACIONES LINEALES - ESTILOS EXCLUSIVOS ===== */
+
+/* Sección principal */
+#tfSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    width: fit-content;
+    min-width: fit-content;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    margin: 0 auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+body.light #tfSection {
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+}
+
+#tfSection h2 {
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 8px;
+    margin-bottom: 1rem;
+    width: 100%;
+    text-align: center;
+}
+
+.tf-formula {
+    text-align: center;
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    font-family: monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Espacios vectoriales V y W */
+.tf-espacio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1rem;
+    border: 2px solid var(--primary);
+    border-radius: 1rem;
+    background: var(--bg-surface);
+    min-width: 280px;
+}
+
+.tf-espacio-label {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Contenedor para columna central (A y C) */
+.tf-center-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    min-width: 200px;
+}
+
+/* Contenedor para fila de matriz (todo en una línea) */
+.tf-matrix-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+}
+
+/* Etiqueta de matriz (ej: B₂ [β↓] =) */
+.tf-matrix-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.tf-matrix-label .tf-symbol {
+    font-size: 0.9rem;
+    font-weight: normal;
+    color: var(--text-secondary);
+}
+
+/* Tablas editables */
+.tf-matrix-table {
+    border-spacing: 8px;
+    margin: 0;
+}
+
+.tf-matrix-table td {
+    padding: 0;
+    min-width: 75px;
+    height: 55px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.tf-matrix-table .cell-input,
+.tf-matrix-table .cell-span {
+    width: 75px;
+    height: 55px;
+    text-align: center;
+    font-size: 1.4rem;
+    color: var(--text-primary);
+    background: var(--cell-bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    outline: none;
+    cursor: text;
+}
+
+.tf-matrix-table .cell-input:focus {
+    border-color: var(--primary);
+    background: var(--input-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.tf-matrix-table .cell-span {
+    cursor: pointer;
+    user-select: none;
+}
+
+.tf-matrix-table .cell-span:hover {
+    background: var(--cell-hover);
+    border-color: var(--primary);
+}
+
+.tf-matrix-table .cell-span:focus {
+    border-color: var(--primary);
+    background: var(--cell-focus);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.tf-matrix-table .cell-span[data-value=""] {
+    color: transparent;
+}
+
+.tf-matrix-table .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    font-size: 0.9em;
+    min-width: 55px;
+    color: var(--text-primary);
+}
+
+.tf-matrix-table .frac .top {
+    border-bottom: 1px solid var(--text-primary);
+    padding-bottom: 2px;
+}
+
+.tf-matrix-table .frac .bottom {
+    padding-top: 2px;
+}
+
+/* Contenedor de matriz con bordes decorativos */
+.tf-matrix-container {
+    position: relative;
+    padding: 0.35rem 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tf-matrix-container::before,
+.tf-matrix-container::after {
+    content: "";
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    width: 3px;
+}
+
+.tf-matrix-container::before {
+    left: 2px;
+    border-left: 3px solid var(--primary);
+    border-top: 3px solid var(--primary);
+    border-bottom: 3px solid var(--primary);
+    border-radius: 8px 0 0 8px;
+}
+
+.tf-matrix-container::after {
+    right: 2px;
+    border-right: 3px solid var(--primary);
+    border-top: 3px solid var(--primary);
+    border-bottom: 3px solid var(--primary);
+    border-radius: 0 8px 8px 0;
+}
+
+/* Tablas de resultado */
+.tf-matrix-table.tf-result-table {
+    border-spacing: 12px 10px;
+    margin: 0;
+}
+
+.tf-matrix-table.tf-result-table td {
+    padding: 8px 16px;
+    text-align: center;
+    font-size: clamp(14px, 1.5vw, 18px);
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+}
+
+.tf-matrix-table.tf-result-table .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+    font-size: 0.9em;
+    min-width: 55px;
+    color: var(--text-primary);
+}
+
+.tf-matrix-table.tf-result-table .frac .top {
+    border-bottom: 1px solid var(--text-primary);
+    padding-bottom: 2px;
+}
+
+.tf-matrix-table.tf-result-table .frac .bottom {
+    padding-top: 2px;
+}
+
+/* Contenedor de resultado con bordes verdes */
+.result-matrix-container {
+    position: relative;
+    padding: 0.35rem 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.result-matrix-container::before,
+.result-matrix-container::after {
+    content: "";
+    position: absolute;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    width: 3px;
+}
+
+.result-matrix-container::before {
+    left: 2px;
+    border-left: 3px solid var(--success);
+    border-top: 3px solid var(--success);
+    border-bottom: 3px solid var(--success);
+    border-radius: 8px 0 0 8px;
+}
+
+.result-matrix-container::after {
+    right: 2px;
+    border-right: 3px solid var(--success);
+    border-top: 3px solid var(--success);
+    border-bottom: 3px solid var(--success);
+    border-radius: 0 8px 8px 0;
+}
+
+/* Resultados derivados (P, Q, A, C) - todo en una línea */
+.tf-derived-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: nowrap;
+}
+
+.tf-derived-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+}
+
+.tf-derived-label sub {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.tf-derived-placeholder {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    background: var(--bg-page);
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Flechas largas horizontales (A y C) - cubren toda la matriz */
+.tf-long-arrow-horizontal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 100%;
+    font-size: 2.5rem;
+    color: var(--primary);
+}
+
+/* Flechas verticales (P y Q) - con texto al lado */
+.tf-arrow-vertical {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.tf-arrow-vertical .arrow-symbol {
+    font-size: 1.8rem;
+}
+
+.tf-arrow-vertical .arrow-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--success);
+}
+
+.tf-arrow-vertical .arrow-label sub {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .tf-matrix-table td {
+        min-width: 65px;
+        height: 50px;
+    }
+    
+    .tf-matrix-table .cell-input,
+    .tf-matrix-table .cell-span {
+        width: 65px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+    
+    .tf-matrix-table.tf-result-table td {
+        padding: 6px 12px;
+        font-size: clamp(12px, 2.5vw, 15px);
+    }
+    
+    .tf-derived-placeholder {
+        white-space: normal;
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .tf-long-arrow-horizontal {
+        font-size: 1.8rem;
+    }
+    
+    .tf-arrow-vertical {
+        font-size: 1.2rem;
+    }
+    
+    .tf-arrow-vertical .arrow-symbol {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .tf-matrix-table td {
+        min-width: 55px;
+        height: 45px;
+    }
+    
+    .tf-matrix-table .cell-input,
+    .tf-matrix-table .cell-span {
+        width: 55px;
+        height: 45px;
+        font-size: 1rem;
+    }
+    
+    .tf-matrix-table.tf-result-table td {
+        padding: 4px 8px;
+        font-size: clamp(10px, 2vw, 13px);
+    }
+    
+    .tf-derived-label {
+        font-size: 0.85rem;
+    }
+    
+    .tf-derived-placeholder {
+        font-size: 0.65rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .tf-long-arrow-horizontal {
+        font-size: 1.3rem;
+    }
+    
+    .tf-arrow-vertical {
+        font-size: 1rem;
+    }
+    
+    .tf-arrow-vertical .arrow-symbol {
+        font-size: 1.2rem;
+    }
+}
+
+@media (min-width: 1200px) {
+    .tf-matrix-table td {
+        min-width: 85px;
+        height: 60px;
+    }
+    
+    .tf-matrix-table .cell-input,
+    .tf-matrix-table .cell-span {
+        width: 85px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .tf-matrix-table {
+        border-spacing: 10px;
+    }
+    
+    .tf-matrix-table.tf-result-table {
+        border-spacing: 16px 12px;
+    }
+    
+    .tf-matrix-table.tf-result-table td {
+        padding: 10px 20px;
+        font-size: 18px;
+    }
+    
+    .tf-long-arrow-horizontal {
+        font-size: 3rem;
+    }
+}
+
+/* Modo claro */
+body.light .tf-espacio {
+    background: var(--bg-surface);
+}
+
+body.light .tf-derived-placeholder {
+    background: var(--bg-page);
+}
+
+/* Animaciones */
+.tf-matrix-table .cell-input,
+.tf-matrix-table .cell-span,
+.result-matrix-container,
+.tf-matrix-container {
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }

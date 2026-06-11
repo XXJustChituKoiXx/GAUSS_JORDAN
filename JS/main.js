@@ -5,6 +5,7 @@ import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.
 import UI from "./ui.js";
 
 import { desconfigurarEventos as desconfigurarEventosMatri, desconfigurarEventos as desconfigurarEventosEV } from "./eventos_celdas.js";
+import { inicializarTransformaciones, limpiarTransformaciones } from "./ux_transformaciones.js";
 
 const article = document.getElementById("article");
 const aside = document.getElementById("aside");
@@ -216,6 +217,7 @@ function switchModule(module) {
 
     desconfigurarEventosEV();
     desconfigurarEventosMatri(article);
+    limpiarTransformaciones();
     disconnectTableSync();
 
     updateTopNavSelection();
@@ -239,7 +241,8 @@ function switchModule(module) {
     }
     else if (module === "transformaciones") {
         currentAsideSelection = "";
-        mostrarPlaceholder(article, "TRANSFORMACIONES LINEALES");
+        limpiarTransformaciones();
+        inicializarTransformaciones(article);
     }
     else if (module === "diagonalizacion") {
         currentAsideSelection = "";
