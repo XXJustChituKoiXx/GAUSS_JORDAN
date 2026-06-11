@@ -1,7 +1,7 @@
-import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=15";
-import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=15";
-import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=15";
-import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.js?v=15";
+import { inicializarMatriz, cambiarModo } from "./ux_matrices.js?v=16";
+import { inicializarEV, cambiarOperacionEV } from "./ux_ev.js?v=16";
+import { inicializarOperacionesBasicas, cambiarOperacionBasica } from "./ux_basicas.js?v=16";
+import { initDragAndDrop, initTableSync, disconnectTableSync } from "./dragDrop.js?v=16";
 import UI from "./ui.js";
 
 import { desconfigurarEventos as desconfigurarEventosMatri, desconfigurarEventos as desconfigurarEventosEV } from "./eventos_celdas.js";
@@ -169,11 +169,7 @@ function buildAside() {
         ops.forEach(op => {
             ul.appendChild(createAsideButton(op, () => {
                 currentAsideSelection = op.id;
-                if (op.modo === "cambio-base") {
-                    mostrarPlaceholder(article, "CAMBIO DE BASE", "Apartado agregado visualmente dentro de E.V y S.E.V");
-                } else {
-                    cambiarOperacionEV(article, op.modo);
-                }
+                cambiarOperacionEV(article, op.modo);
                 updateSelection(op.id);
             }));
         });

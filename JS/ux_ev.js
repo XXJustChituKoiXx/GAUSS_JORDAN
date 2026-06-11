@@ -1,9 +1,9 @@
 import UI from "./ui.js";
 import { configurarEventosEV, desconfigurarEventosEV } from "./eventos_celdas.js";
-import Auxiliares from "./auxiliares.js?v=13";
-import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar } from "./calculos.js";
-import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=13";
-import { crearSpanCelda, setEVMode, ajustarTodasColumnasEV, actualizarBotonCalcularEV, validarCamposEV } from "./celdas.js?v=13";
+import Auxiliares from "./auxiliares.js?v=16";
+import { clasificarLIoLD, perteneceAS, hallarBase, completarBase, ortogonalizar, matrizCambioBase } from "./calculos.js";
+import { initDragAndDropEV, setEVCallbacks, clearEVFileData } from "./dragDropEV.js?v=16";
+import { crearSpanCelda, spanToInput, inputToSpan, setEVMode, ajustarTodasColumnasEV, actualizarBotonCalcularEV, validarCamposEV } from "./celdas.js?v=16";
 
 let currentOperation = "li";
 let vectoresHorizontales = [["", ""], ["", ""]];
@@ -33,6 +33,15 @@ export function inicializarEV(article, modo, preserveState = false) {
     desconfigurarEventosEV();
     currentOperation = modo;
     clearEVFileData();
+
+    if (modo === "cambio-base") {
+        setEVMode(false);
+        tablaVectores = null;
+        limpiar(article);
+        renderCambioBase(article);
+        return;
+    }
+
     setEVMode(true);
     setEVCallbacks((vectores, fileName) => {
         if (vectores === null) {
@@ -566,7 +575,8 @@ function getBotonTexto(modo) {
         "pertenecer": "Verificar pertenencia a ℒ(V)",
         "base": "Hallar base",
         "completar": "Completar base",
-        "ortogonalizar": "Calcular base ortogonal"
+        "ortogonalizar": "Calcular base ortogonal",
+        "cambio-base": "Calcular cambio de base"
     };
     return textos[modo] || "Calcular";
 }
@@ -577,7 +587,8 @@ function getNombreOperacion(modo) {
         "pertenecer": "PERTENENCIA A \u2112(V)",
         "base": "BASE DEL ESPACIO VECTORIAL",
         "completar": "COMPLETACIÓN DE BASE",
-        "ortogonalizar": "BASE ORTOGONAL"
+        "ortogonalizar": "BASE ORTOGONAL",
+        "cambio-base": "CAMBIO DE BASE"
     };
     return nombres[modo] || "RESULTADO";
 }
@@ -601,6 +612,729 @@ function crearVectorCanonicoTexto(dimension, indice) {
     return `(${componentes.join(", ")})`;
 }
 
+
+
+function crearTdCambioBase(row, col) {
+    const td = document.createElement("td");
+    const span = crearSpanCelda("", row, col);
+    td.appendChild(span);
+    return td;
+}
+
+function crearSwitchBaseCanonica(tableId, labelText) {
+    const wrapper = document.createElement("label");
+    wrapper.className = "canonical-switch-wrapper";
+    wrapper.setAttribute("for", `${tableId}CanonicaSwitch`);
+
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = `${tableId}CanonicaSwitch`;
+    input.className = "canonical-switch-input";
+    input.dataset.tableId = tableId;
+    input.dataset.baseName = labelText;
+
+    const visual = document.createElement("span");
+    visual.className = "canonical-switch-visual";
+    visual.setAttribute("aria-hidden", "true");
+
+    const knob = document.createElement("span");
+    knob.className = "canonical-switch-knob";
+
+    const text = document.createElement("span");
+    text.className = "canonical-switch-text";
+    text.textContent = "Canónica";
+
+    visual.append(knob, text);
+    wrapper.append(input, visual);
+    return wrapper;
+}
+
+function crearMatrizCambioBaseEditable(id, labelText, filas = 2, columnas = 2) {
+    const card = document.createElement("div");
+    card.className = "basic-matrix-card cambio-base-card";
+
+    const header = document.createElement("div");
+    header.className = "cambio-base-card-header";
+
+    const label = document.createElement("div");
+    label.className = "basic-matrix-label";
+    label.textContent = `${labelText} =`;
+
+    header.append(label, crearSwitchBaseCanonica(id, labelText));
+
+    const container = document.createElement("div");
+    container.className = "basic-matrix-container";
+
+    const table = document.createElement("table");
+    table.id = id;
+    table.className = "basic-input-table cambio-base-table";
+    table.dataset.minRows = "1";
+    table.dataset.minCols = "1";
+
+    for (let i = 0; i < filas; i++) {
+        const tr = document.createElement("tr");
+        for (let j = 0; j < columnas; j++) {
+            tr.appendChild(crearTdCambioBase(i, j));
+        }
+        table.appendChild(tr);
+    }
+
+    container.appendChild(table);
+    card.append(header, container);
+    return card;
+}
+
+function actualizarAtributosCambioBase(table) {
+    if (!table) return;
+    Array.from(table.rows).forEach((row, i) => {
+        Array.from(row.cells).forEach((cell, j) => {
+            const editable = cell.querySelector(".cell-input, .cell-span");
+            if (!editable) return;
+            editable.dataset.row = String(i);
+            editable.dataset.col = String(j);
+            editable.setAttribute("data-row", String(i));
+            editable.setAttribute("data-col", String(j));
+            editable.setAttribute("aria-label", `Celda ${i + 1}, ${j + 1}`);
+        });
+    });
+}
+
+function obtenerEditableCambioBase(cell) {
+    return cell?.querySelector(".cell-input, .cell-span") || null;
+}
+
+function enfocarCeldaCambioBase(table, rowIndex, colIndex) {
+    if (!table?.rows.length) return;
+    const row = table.rows[Math.max(0, Math.min(rowIndex, table.rows.length - 1))];
+    if (!row) return;
+    const col = Math.max(0, Math.min(colIndex, row.cells.length - 1));
+    const editable = obtenerEditableCambioBase(row.cells[col]);
+    if (!editable) return;
+
+    if (editable.classList.contains("cell-span")) {
+        const input = spanToInput(editable);
+        input?.select?.();
+    } else {
+        editable.focus();
+        editable.select?.();
+    }
+}
+
+function ajustarAnchoColumnaCambioBase(table, colIndex) {
+    if (!table) return;
+    const minWidth = 5;
+    let maxChars = minWidth;
+
+    Array.from(table.rows).forEach(row => {
+        const editable = obtenerEditableCambioBase(row.cells[colIndex]);
+        if (!editable) return;
+        const value = editable.classList.contains("cell-input")
+            ? editable.value
+            : editable.getAttribute("data-value") || "";
+        maxChars = Math.max(maxChars, String(value || "").length + 1);
+    });
+
+    Array.from(table.rows).forEach(row => {
+        const editable = obtenerEditableCambioBase(row.cells[colIndex]);
+        if (!editable) return;
+        editable.style.width = `${maxChars}ch`;
+        editable.style.minWidth = `${maxChars}ch`;
+    });
+}
+
+function ajustarTodasColumnasCambioBase(table) {
+    if (!table?.rows.length) return;
+    const cols = table.rows[0].cells.length;
+    for (let j = 0; j < cols; j++) ajustarAnchoColumnaCambioBase(table, j);
+}
+
+function insertarFilaCambioBase(table, rowIndex, colIndex) {
+    const columnas = table.rows[0].cells.length;
+    const nuevaFila = table.insertRow(rowIndex + 1);
+    for (let j = 0; j < columnas; j++) {
+        nuevaFila.appendChild(crearTdCambioBase(rowIndex + 1, j));
+    }
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
+    setTimeout(() => enfocarCeldaCambioBase(table, rowIndex + 1, colIndex), 10);
+}
+
+function insertarColumnaCambioBase(table, rowIndex, colIndex) {
+    Array.from(table.rows).forEach((row, i) => {
+        const td = row.insertCell(colIndex + 1);
+        td.appendChild(crearSpanCelda("", i, colIndex + 1));
+    });
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
+    setTimeout(() => enfocarCeldaCambioBase(table, rowIndex, colIndex + 1), 10);
+}
+
+function celdaVaciaCambioBase(cell) {
+    const input = cell?.querySelector(".cell-input");
+    const span = cell?.querySelector(".cell-span");
+    if (input) return input.value.trim() === "";
+    if (span) return (span.getAttribute("data-value") || "") === "";
+    return true;
+}
+
+function filaVaciaCambioBase(table, rowIndex) {
+    const row = table.rows[rowIndex];
+    return row ? Array.from(row.cells).every(celdaVaciaCambioBase) : false;
+}
+
+function columnaVaciaCambioBase(table, colIndex) {
+    return Array.from(table.rows).every(row => celdaVaciaCambioBase(row.cells[colIndex]));
+}
+
+function eliminarFilaCambioBase(table, rowIndex) {
+    if (table.rows.length <= 1) return false;
+    table.deleteRow(rowIndex);
+    actualizarAtributosCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
+    return true;
+}
+
+function eliminarColumnaCambioBase(table, colIndex) {
+    if (!table.rows.length || table.rows[0].cells.length <= 1) return false;
+    Array.from(table.rows).forEach(row => row.deleteCell(colIndex));
+    actualizarAtributosCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
+    return true;
+}
+
+function revisarBorradoCambioBase(table, rowIndex, colIndex) {
+    let targetRow = rowIndex;
+    let targetCol = colIndex;
+
+    if (filaVaciaCambioBase(table, rowIndex) && eliminarFilaCambioBase(table, rowIndex)) {
+        targetRow = Math.max(0, rowIndex - 1);
+    }
+
+    if (columnaVaciaCambioBase(table, colIndex) && eliminarColumnaCambioBase(table, colIndex)) {
+        targetCol = Math.max(0, colIndex - 1);
+    }
+
+    ajustarTodasColumnasCambioBase(table);
+    sincronizarSwitchCanonicoCambioBase(table);
+    setTimeout(() => enfocarCeldaCambioBase(table, targetRow, targetCol), 10);
+}
+
+function finalizarEntradaCambioBase(input) {
+    if (!input || !input.classList.contains("cell-input")) return;
+    const table = input.closest("table");
+    const cell = input.closest("td");
+    const col = cell?.cellIndex ?? 0;
+    inputToSpan(input);
+    ajustarAnchoColumnaCambioBase(table, col);
+    sincronizarSwitchCanonicoCambioBase(table);
+}
+
+function moverCambioBase(table, rowIndex, colIndex, deltaRow, deltaCol) {
+    const targetRow = rowIndex + deltaRow;
+    const targetCol = colIndex + deltaCol;
+    if (targetRow < 0 || targetRow >= table.rows.length) return;
+    if (targetCol < 0 || targetCol >= table.rows[targetRow].cells.length) return;
+    enfocarCeldaCambioBase(table, targetRow, targetCol);
+}
+
+function limpiarValorSpanCambioBase(span) {
+    span.setAttribute("data-value", "");
+    span.innerHTML = "";
+    span.textContent = "";
+}
+
+function obtenerValorCambioBaseEditable(editable) {
+    if (!editable) return "";
+    if (editable.classList.contains("cell-input")) return editable.value.trim();
+    return (editable.getAttribute("data-value") || editable.textContent || "").trim();
+}
+
+function obtenerValorCambioBaseCell(cell) {
+    return obtenerValorCambioBaseEditable(obtenerEditableCambioBase(cell));
+}
+
+function fraccionCambioBaseIgualA(valor, esperado) {
+    const texto = Auxiliares.normalizarValorTexto(valor);
+    if (!Auxiliares.esValorNumericoValido(texto, false)) return false;
+    const fraccion = Auxiliares.normalizarSigno(Auxiliares.parsearFraccion(texto));
+    const [num, den] = Auxiliares.simplificar(fraccion.num, fraccion.den);
+    return num === esperado && den === 1;
+}
+
+function esCeroVisualCanonicoCambioBase(valor) {
+    const texto = String(valor || "").trim();
+    if (texto === "") return true;
+    return fraccionCambioBaseIgualA(texto, 0);
+}
+
+function esMatrizCanonicaCambioBase(table) {
+    if (!table?.rows.length) return false;
+
+    const filas = table.rows.length;
+    const columnas = table.rows[0]?.cells.length || 0;
+    if (filas === 0 || columnas === 0 || filas !== columnas) return false;
+
+    for (let i = 0; i < filas; i++) {
+        for (let j = 0; j < columnas; j++) {
+            const valor = obtenerValorCambioBaseCell(table.rows[i].cells[j]);
+
+            if (i === j) {
+                if (!fraccionCambioBaseIgualA(valor, 1)) return false;
+            } else if (!esCeroVisualCanonicoCambioBase(valor)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+function obtenerSwitchCanonicoCambioBase(table) {
+    if (!table?.id) return null;
+    return document.querySelector(`.canonical-switch-input[data-table-id="${table.id}"]`);
+}
+
+function marcarSwitchCanonicoCambioBase(table, checked) {
+    const switchInput = obtenerSwitchCanonicoCambioBase(table);
+    if (!switchInput) return;
+    switchInput.checked = checked;
+    switchInput.setAttribute("aria-checked", String(checked));
+    switchInput.closest(".canonical-switch-wrapper")?.classList.toggle("is-active", checked);
+}
+
+function sincronizarSwitchCanonicoCambioBase(table) {
+    if (!table) return;
+    marcarSwitchCanonicoCambioBase(table, esMatrizCanonicaCambioBase(table));
+}
+
+function sincronizarSwitchesCanonicosCambioBase() {
+    document.querySelectorAll("#mainSection .cambio-base-table").forEach(sincronizarSwitchCanonicoCambioBase);
+}
+
+function asignarValorCeldaCambioBase(table, rowIndex, colIndex, valor) {
+    const cell = table.rows[rowIndex]?.cells[colIndex];
+    if (!cell) return;
+    const editable = obtenerEditableCambioBase(cell);
+    const span = crearSpanCelda(valor, rowIndex, colIndex);
+
+    if (editable) editable.replaceWith(span);
+    else cell.appendChild(span);
+}
+
+function reconstruirMatrizCanonicaCambioBase(table, dimension) {
+    if (!table) return;
+    table.innerHTML = "";
+
+    for (let i = 0; i < dimension; i++) {
+        const tr = document.createElement("tr");
+        for (let j = 0; j < dimension; j++) {
+            const td = document.createElement("td");
+            td.appendChild(crearSpanCelda(i === j ? "1" : "0", i, j));
+            tr.appendChild(td);
+        }
+        table.appendChild(tr);
+    }
+
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    marcarSwitchCanonicoCambioBase(table, true);
+}
+
+function limpiarTablaCambioBase(table) {
+    if (!table) return;
+
+    Array.from(table.rows).forEach((row, rowIndex) => {
+        Array.from(row.cells).forEach((cell, colIndex) => {
+            asignarValorCeldaCambioBase(table, rowIndex, colIndex, "");
+        });
+    });
+
+    actualizarAtributosCambioBase(table);
+    ajustarTodasColumnasCambioBase(table);
+    marcarSwitchCanonicoCambioBase(table, false);
+}
+
+function manejarCambioSwitchCanonicoCambioBase(input) {
+    const table = document.getElementById(input.dataset.tableId);
+    if (!table) return;
+
+    const debeActivarCanonica = input.checked;
+    finalizarEntradasCambioBase();
+    document.getElementById("resultadoEVSection")?.remove();
+
+    if (debeActivarCanonica) {
+        const filas = table.rows.length || 2;
+        const columnas = table.rows[0]?.cells.length || 2;
+        const dimension = Math.max(1, filas, columnas);
+        reconstruirMatrizCanonicaCambioBase(table, dimension);
+        setTimeout(() => enfocarCeldaCambioBase(table, 0, 0), 20);
+        return;
+    }
+
+    limpiarTablaCambioBase(table);
+    setTimeout(() => enfocarCeldaCambioBase(table, 0, 0), 20);
+}
+
+function sanitizarValorCambioBase(valor) {
+    let limpio = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, "");
+    limpio = limpio.replace(/[^0-9\-\/.]/g, "");
+
+    const partes = limpio.split("/");
+    if (partes.length > 2) limpio = partes[0] + "/" + partes.slice(1).join("").replace(/\//g, "");
+
+    const normalizarPuntos = texto => {
+        const pedazos = texto.split(".");
+        return pedazos.length <= 2 ? texto : pedazos[0] + "." + pedazos.slice(1).join("");
+    };
+
+    const limpiarParte = texto => {
+        texto = normalizarPuntos(texto || "");
+        const esNegativo = texto.startsWith("-");
+        texto = texto.replace(/-/g, "");
+        return `${esNegativo ? "-" : ""}${texto}`;
+    };
+
+    if (limpio.includes("/")) {
+        const [num, den = ""] = limpio.split("/");
+        limpio = `${limpiarParte(num)}/${limpiarParte(den)}`;
+    } else {
+        limpio = limpiarParte(limpio);
+    }
+
+    return limpio;
+}
+
+function manejarKeydownCambioBase(event) {
+    const target = event.target;
+    const table = target.closest?.(".cambio-base-table");
+
+    if (event.ctrlKey && event.key === "Enter") {
+        document.getElementById("btnCalcularCambioBase")?.click();
+        return;
+    }
+
+    if (!table) return;
+
+    const cell = target.closest("td");
+    const row = cell?.parentElement;
+    if (!cell || !row) return;
+
+    const rowIndex = row.rowIndex;
+    const colIndex = cell.cellIndex;
+
+    if (["Enter", " ", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        event.preventDefault();
+    }
+
+    if (target.classList.contains("cell-span")) {
+        if (event.key === "Enter") return insertarFilaCambioBase(table, rowIndex, colIndex);
+        if (event.key === " ") return insertarColumnaCambioBase(table, rowIndex, colIndex);
+        if (event.key === "Backspace" || event.key === "Delete") {
+            event.preventDefault();
+            limpiarValorSpanCambioBase(target);
+            revisarBorradoCambioBase(table, rowIndex, colIndex);
+            return;
+        }
+        if (event.key === "ArrowLeft") return moverCambioBase(table, rowIndex, colIndex, 0, -1);
+        if (event.key === "ArrowRight") return moverCambioBase(table, rowIndex, colIndex, 0, 1);
+        if (event.key === "ArrowUp") return moverCambioBase(table, rowIndex, colIndex, -1, 0);
+        if (event.key === "ArrowDown") return moverCambioBase(table, rowIndex, colIndex, 1, 0);
+
+        if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            event.preventDefault();
+            if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(event.key)) return;
+            const input = spanToInput(target);
+            if (input) {
+                input.value = event.key;
+                input.value = sanitizarValorCambioBase(input.value);
+                input.setSelectionRange(input.value.length, input.value.length);
+                input.style.width = `${Math.max(5, input.value.length + 1)}ch`;
+                sincronizarSwitchCanonicoCambioBase(table);
+            }
+        }
+        return;
+    }
+
+    if (!target.classList.contains("cell-input")) return;
+
+    if (event.key === "Enter") {
+        finalizarEntradaCambioBase(target);
+        insertarFilaCambioBase(table, rowIndex, colIndex);
+        return;
+    }
+
+    if (event.key === " ") {
+        finalizarEntradaCambioBase(target);
+        insertarColumnaCambioBase(table, rowIndex, colIndex);
+        return;
+    }
+
+    if (event.key === "Tab") {
+        event.preventDefault();
+        finalizarEntradaCambioBase(target);
+        if (colIndex < row.cells.length - 1) enfocarCeldaCambioBase(table, rowIndex, colIndex + 1);
+        else if (rowIndex < table.rows.length - 1) enfocarCeldaCambioBase(table, rowIndex + 1, 0);
+        else document.getElementById("btnCalcularCambioBase")?.focus();
+        return;
+    }
+
+    if (event.key === "Escape") {
+        finalizarEntradaCambioBase(target);
+        target.blur();
+        return;
+    }
+
+    if (event.key === "ArrowLeft") return moverCambioBase(table, rowIndex, colIndex, 0, -1);
+    if (event.key === "ArrowRight") return moverCambioBase(table, rowIndex, colIndex, 0, 1);
+    if (event.key === "ArrowUp") return moverCambioBase(table, rowIndex, colIndex, -1, 0);
+    if (event.key === "ArrowDown") return moverCambioBase(table, rowIndex, colIndex, 1, 0);
+
+    if ((event.key === "Backspace" || event.key === "Delete") && target.value === "") {
+        event.preventDefault();
+        const span = crearSpanCelda("", rowIndex, colIndex);
+        target.replaceWith(span);
+        revisarBorradoCambioBase(table, rowIndex, colIndex);
+    }
+}
+
+function manejarInputCambioBase(event) {
+    const input = event.target;
+    if (!input.classList?.contains("cell-input")) return;
+    const table = input.closest(".cambio-base-table");
+    if (!table) return;
+
+    input.value = sanitizarValorCambioBase(input.value);
+    input.style.width = `${Math.max(5, input.value.length + 1)}ch`;
+    const cell = input.closest("td");
+    ajustarAnchoColumnaCambioBase(table, cell?.cellIndex ?? 0);
+    sincronizarSwitchCanonicoCambioBase(table);
+}
+
+function manejarClickCambioBase(event) {
+    const section = event.currentTarget;
+    const target = event.target;
+    const clickedCell = target.closest?.("td");
+
+    section.querySelectorAll(".cambio-base-table .cell-input").forEach(input => {
+        if (input.closest("td") !== clickedCell) finalizarEntradaCambioBase(input);
+    });
+
+    const span = target.classList?.contains("cell-span") ? target : target.closest?.(".cell-span");
+    if (span && span.closest(".cambio-base-table")) {
+        event.preventDefault();
+        spanToInput(span);
+    }
+}
+
+function manejarBeforeInputCambioBase(event) {
+    const input = event.target;
+    if (!input.classList?.contains("cell-input")) return;
+    const table = input.closest(".cambio-base-table");
+    if (!table) return;
+
+    const data = event.data || "";
+    if (!/\s/.test(data)) return;
+
+    event.preventDefault();
+    const cell = input.closest("td");
+    const row = cell?.parentElement;
+    if (!cell || !row) return;
+    finalizarEntradaCambioBase(input);
+    insertarColumnaCambioBase(table, row.rowIndex, cell.cellIndex);
+}
+
+function configurarEventosCambioBase(section) {
+    section.addEventListener("keydown", manejarKeydownCambioBase);
+    section.addEventListener("input", manejarInputCambioBase);
+    section.addEventListener("click", manejarClickCambioBase);
+    section.addEventListener("beforeinput", manejarBeforeInputCambioBase);
+
+    section.querySelectorAll(".canonical-switch-input").forEach(input => {
+        input.setAttribute("aria-checked", String(input.checked));
+        input.addEventListener("change", () => manejarCambioSwitchCanonicoCambioBase(input));
+    });
+}
+
+function finalizarEntradasCambioBase() {
+    document.querySelectorAll("#mainSection .cambio-base-table .cell-input").forEach(finalizarEntradaCambioBase);
+}
+
+function leerMatrizCambioBase(id, nombre) {
+    const table = document.getElementById(id);
+    if (!table) throw new Error(`No se encontró la base ${nombre}.`);
+
+    return Array.from(table.rows).map((row, rowIndex) =>
+        Array.from(row.cells).map((cell, colIndex) => {
+            const input = cell.querySelector("input");
+            const span = cell.querySelector(".cell-span");
+            const valor = (input?.value ?? span?.getAttribute("data-value") ?? span?.textContent ?? "").trim();
+            const valorFinal = valor === "" ? "0" : valor;
+
+            if (!Auxiliares.esValorNumericoValido(valorFinal, true)) {
+                throw new Error(`El valor de la base ${nombre} en la fila ${rowIndex + 1}, columna ${colIndex + 1} no es válido. Escribe un número, decimal o fracción con denominador distinto de cero.`);
+            }
+
+            return Auxiliares.normalizarSigno(Auxiliares.parsearFraccion(valorFinal));
+        })
+    );
+}
+
+function dimensionesMatrizCambio(matriz) {
+    return { filas: matriz.length, columnas: matriz[0]?.length || 0 };
+}
+
+function validarDimensionesCambioBase(baseOrigen, baseDestino) {
+    const dimOrigen = dimensionesMatrizCambio(baseOrigen);
+    const dimDestino = dimensionesMatrizCambio(baseDestino);
+
+    if (dimOrigen.filas !== dimOrigen.columnas) {
+        throw new Error(`La base de origen B debe ser cuadrada. Actualmente B es ${dimOrigen.filas}×${dimOrigen.columnas}.`);
+    }
+
+    if (dimDestino.filas !== dimDestino.columnas) {
+        throw new Error(`La base de destino C debe ser cuadrada. Actualmente C es ${dimDestino.filas}×${dimDestino.columnas}.`);
+    }
+
+    if (dimOrigen.filas !== dimDestino.filas || dimOrigen.columnas !== dimDestino.columnas) {
+        throw new Error(`La base de origen B y la base de destino C deben tener la misma dimensión. Actualmente B es ${dimOrigen.filas}×${dimOrigen.columnas} y C es ${dimDestino.filas}×${dimDestino.columnas}.`);
+    }
+}
+
+function crearFraccionHTMLCambioBase(valor) {
+    const str = Auxiliares.fraccionToString(valor);
+    if (!str.includes("/")) return str;
+    const [num, den] = str.split("/");
+    return `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
+}
+
+function mostrarResultadoCambioBase(article, matriz) {
+    document.getElementById("resultadoEVSection")?.remove();
+
+    const section = UI.createSection("resultadoEVSection", "RESULTADO: CAMBIO DE BASE");
+    const content = document.createElement("div");
+    content.className = "resultado-ev-content";
+    content.style.display = "flex";
+    content.style.flexDirection = "column";
+    content.style.alignItems = "center";
+    content.style.gap = "1.5rem";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "result-wrapper resultado-matriz-wrapper";
+
+    const label = document.createElement("div");
+    label.className = "result-label resultado-matriz-label";
+    label.textContent = "P =";
+
+    const matrixContainer = document.createElement("div");
+    matrixContainer.className = "result-matrix-container";
+
+    const table = document.createElement("table");
+    table.className = "result-table";
+
+    matriz.forEach(fila => {
+        const tr = document.createElement("tr");
+        fila.forEach(valor => {
+            const td = document.createElement("td");
+            td.innerHTML = crearFraccionHTMLCambioBase(valor);
+            tr.appendChild(td);
+        });
+        table.appendChild(tr);
+    });
+
+    matrixContainer.appendChild(table);
+    wrapper.append(label, matrixContainer);
+    content.appendChild(wrapper);
+
+    const mensaje = document.createElement("div");
+    mensaje.className = "resultado-mensaje mensaje-exito";
+    mensaje.textContent = "MATRIZ DE CAMBIO DE BASE CALCULADA";
+    content.appendChild(mensaje);
+
+    section.appendChild(content);
+    article.appendChild(section);
+}
+
+function mostrarErrorCambioBase(article, mensaje) {
+    document.getElementById("resultadoEVSection")?.remove();
+
+    const section = UI.createSection("resultadoEVSection", "ERROR");
+    const error = document.createElement("div");
+    error.className = "resultado-mensaje mensaje-error";
+    error.textContent = `Error: ${mensaje}`;
+    section.appendChild(error);
+    article.appendChild(section);
+}
+
+function limpiarCambioBase() {
+    document.querySelectorAll("#mainSection .cambio-base-table").forEach(limpiarTablaCambioBase);
+    document.getElementById("resultadoEVSection")?.remove();
+
+    const firstTable = document.querySelector("#mainSection .cambio-base-table");
+    if (firstTable) setTimeout(() => enfocarCeldaCambioBase(firstTable, 0, 0), 20);
+}
+
+function renderCambioBase(article) {
+    const mainSection = UI.createSection("mainSection", "CAMBIO DE BASE");
+    mainSection.classList.add("cambio-base-section");
+
+    const matricesZone = document.createElement("div");
+    matricesZone.className = "cambio-base-zone";
+    matricesZone.append(
+        crearMatrizCambioBaseEditable("baseOrigenTable", "B", 2, 2),
+        crearMatrizCambioBaseEditable("baseDestinoTable", "C", 2, 2)
+    );
+
+    const actions = document.createElement("div");
+    actions.className = "ev-buttons";
+
+    const btnCalcular = UI.createButton("btnCalcularCambioBase", "Calcular cambio de base", "btnCalcular");
+    btnCalcular.type = "button";
+
+    const btnLimpiar = UI.createButton("btnLimpiarCambioBase", "Borrar matrices", "btnCalcular btnLimpiarEV");
+    btnLimpiar.type = "button";
+
+    actions.append(btnCalcular, btnLimpiar);
+    mainSection.append(matricesZone, actions);
+    article.appendChild(mainSection);
+
+    configurarEventosCambioBase(mainSection);
+    sincronizarSwitchesCanonicosCambioBase();
+
+    const firstTable = document.getElementById("baseOrigenTable");
+    if (firstTable) setTimeout(() => enfocarCeldaCambioBase(firstTable, 0, 0), 30);
+
+    btnLimpiar.addEventListener("click", limpiarCambioBase);
+
+    btnCalcular.addEventListener("click", () => {
+        try {
+            finalizarEntradasCambioBase();
+
+            const baseOrigen = leerMatrizCambioBase("baseOrigenTable", "B");
+            const baseDestino = leerMatrizCambioBase("baseDestinoTable", "C");
+
+            validarDimensionesCambioBase(baseOrigen, baseDestino);
+
+            let resultado;
+            try {
+                resultado = matrizCambioBase(baseOrigen, baseDestino);
+            } catch (error) {
+                throw new Error(error.message || "La base de destino C no es invertible.");
+            }
+
+            try {
+                matrizCambioBase(baseDestino, baseOrigen);
+            } catch (error) {
+                throw new Error("La base de origen B no es invertible; sus vectores no forman una base.");
+            }
+
+            mostrarResultadoCambioBase(article, resultado);
+        } catch (error) {
+            mostrarErrorCambioBase(article, error.message);
+        }
+    });
+}
 
 function limpiarTodoEV() {
     clearEVFileData();

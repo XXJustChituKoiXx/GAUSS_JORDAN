@@ -28,7 +28,7 @@ function limpiar(article) {
 
 function crearTd(row, col) {
     const td = document.createElement("td");
-    const span = crearSpanCelda("0", row, col);
+    const span = crearSpanCelda("", row, col);
     td.appendChild(span);
     return td;
 }
@@ -82,7 +82,7 @@ function crearEscalarVisual() {
     input.id = "basicScalar";
     input.className = "cell-input basic-scalar-input";
     input.type = "text";
-    input.value = "1";
+    input.value = "";
     input.inputMode = "decimal";
     input.setAttribute("aria-label", "Escalar k");
 
@@ -536,7 +536,7 @@ function mostrarError(article, mensaje) {
 
     const result = UI.createSection("resultSection", "ERROR");
     const error = document.createElement("div");
-    error.className = "error-message";
+    error.className = "resultado-mensaje mensaje-error";
     error.textContent = `Error: ${mensaje}`;
     result.appendChild(error);
     article.appendChild(result);
@@ -545,17 +545,24 @@ function mostrarError(article, mensaje) {
 function limpiarMatricesBasicas() {
     document.querySelectorAll("#mainSection .basic-input-table .cell-input, #mainSection .basic-input-table .cell-span").forEach(celda => {
         if (celda.classList.contains("cell-input")) {
-            celda.value = "0";
+            celda.value = "";
         } else {
-            celda.setAttribute("data-value", "0");
-            celda.textContent = "0";
+            celda.setAttribute("data-value", "");
+            celda.innerHTML = "";
+            celda.textContent = "";
         }
     });
 
     const scalar = document.getElementById("basicScalar");
-    if (scalar) scalar.value = "1";
+    if (scalar) {
+        scalar.value = "";
+        scalar.style.width = "5ch";
+    }
     document.querySelectorAll("#mainSection .basic-input-table").forEach(ajustarTodasColumnasBasicas);
     document.getElementById("resultSection")?.remove();
+
+    const firstTable = document.querySelector("#mainSection .basic-input-table");
+    if (firstTable) setTimeout(() => enfocarCelda(firstTable, 0, 0), 20);
 }
 
 function renderBasicas(article, modo) {
@@ -580,6 +587,9 @@ function renderBasicas(article, modo) {
 
     configurarEventosBasicas(mainSection);
 
+    const firstTable = mainSection.querySelector(".basic-input-table");
+    if (firstTable) setTimeout(() => enfocarCelda(firstTable, 0, 0), 30);
+
     btnLimpiar.addEventListener("click", limpiarMatricesBasicas);
 
     btnCalcular.addEventListener("click", () => {
@@ -603,8 +613,11 @@ function renderBasicas(article, modo) {
                 validarDimensionesMatrices(modo, A, B);
                 resultado = multiplicarMatrices(A, B);
             } else if (modo === "escalar") {
-                const valorEscalar = document.getElementById("basicScalar")?.value.trim() || "1";
-                if (!Auxiliares.esValorNumericoValido(valorEscalar, true)) {
+                const valorEscalar = document.getElementById("basicScalar")?.value.trim() || "";
+                if (valorEscalar === "") {
+                    throw new Error("El escalar k no puede estar vacío. Escribe un número, decimal o fracción con denominador distinto de cero.");
+                }
+                if (!Auxiliares.esValorNumericoValido(valorEscalar, false)) {
                     throw new Error("El escalar k no es válido. Escribe un número, decimal o fracción con denominador distinto de cero.");
                 }
                 resultado = multiplicarMatrizPorEscalar(A, Auxiliares.parsearFraccion(valorEscalar));
