@@ -3903,3 +3903,162 @@ body.light .tf-espacio { background: rgba(108,99,255,0.035); }
     }
 }
 
+
+/* ===== AJUSTE FINAL: SWITCH DE TEMA CENTRADO ===== */
+#themeToggle.theme-switch {
+    position: relative !important;
+    display: block !important;
+    width: 82px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    overflow: hidden !important;
+}
+
+#themeToggle.theme-switch .theme-icon {
+    position: absolute !important;
+    top: 5px !important;
+    z-index: 2 !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    pointer-events: none !important;
+}
+
+#themeToggle.theme-switch .theme-icon.sun {
+    left: 5px !important;
+}
+
+#themeToggle.theme-switch .theme-icon.moon {
+    right: 5px !important;
+}
+
+#themeToggle.theme-switch .theme-icon svg {
+    width: 19px !important;
+    height: 19px !important;
+    display: block !important;
+    margin: 0 !important;
+    transform-origin: center !important;
+}
+
+#themeToggle.theme-switch .theme-icon.moon svg {
+    transform: translateX(-0.5px) !important;
+}
+
+#themeToggle.theme-switch .theme-thumb {
+    position: absolute !important;
+    top: 5px !important;
+    left: 5px !important;
+    z-index: 1 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    transform: translateX(40px) !important;
+    transition: transform 0.32s ease, box-shadow 0.32s ease, background 0.32s ease !important;
+}
+
+body.light #themeToggle.theme-switch .theme-thumb,
+#themeToggle.theme-switch.is-light .theme-thumb {
+    transform: translateX(0) !important;
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-thumb {
+    transform: translateX(40px) !important;
+}
+
+body.light #themeToggle.theme-switch .theme-icon.sun {
+    color: #ffffff !important;
+}
+
+body.light #themeToggle.theme-switch .theme-icon.moon {
+    color: var(--primary) !important;
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-icon.sun {
+    color: var(--switch-danger) !important;
+}
+
+body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
+    color: #ffffff !important;
+}
+
+@media (max-width: 768px) {
+    #themeToggle.theme-switch {
+        width: 78px !important;
+        height: 40px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon {
+        top: 5px !important;
+        width: 30px !important;
+        height: 30px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon.sun {
+        left: 5px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon.moon {
+        right: 5px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon svg {
+        width: 18px !important;
+        height: 18px !important;
+    }
+
+    #themeToggle.theme-switch .theme-thumb {
+        top: 5px !important;
+        left: 5px !important;
+        width: 30px !important;
+        height: 30px !important;
+        transform: translateX(38px) !important;
+    }
+
+    body.light #themeToggle.theme-switch .theme-thumb,
+    #themeToggle.theme-switch.is-light .theme-thumb {
+        transform: translateX(0) !important;
+    }
+
+    body:not(.light) #themeToggle.theme-switch .theme-thumb {
+        transform: translateX(38px) !important;
+    }
+}
+
+@media (max-width: 520px) {
+    #themeToggle.theme-switch {
+        width: 74px !important;
+        height: 38px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon {
+        top: 5px !important;
+        width: 28px !important;
+        height: 28px !important;
+    }
+
+    #themeToggle.theme-switch .theme-icon svg {
+        width: 17px !important;
+        height: 17px !important;
+    }
+
+    #themeToggle.theme-switch .theme-thumb {
+        top: 5px !important;
+        left: 5px !important;
+        width: 28px !important;
+        height: 28px !important;
+        transform: translateX(36px) !important;
+    }
+
+    body.light #themeToggle.theme-switch .theme-thumb,
+    #themeToggle.theme-switch.is-light .theme-thumb {
+        transform: translateX(0) !important;
+    }
+
+    body:not(.light) #themeToggle.theme-switch .theme-thumb {
+        transform: translateX(36px) !important;
+    }
+}
