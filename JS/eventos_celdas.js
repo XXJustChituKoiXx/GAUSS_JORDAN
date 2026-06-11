@@ -395,17 +395,31 @@ function _matrixStructEnter(table, input) {
 }
 
 function _matrixStructBackspace(e, table, input) {
-    if ((e.key === 'Backspace' || e.key === 'Delete') && input.value === "") {
+    if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+
+    const cell     = input.closest('td');
+    const row      = cell?.parentElement;
+    if (!cell || !row) return;
+
+    const rowIndex = row.rowIndex;
+    const colIndex = cell.cellIndex;
+
+    if (input.value === "") {
         e.preventDefault();
-        const cell     = input.closest('td');
-        const row      = cell.parentElement;
-        const rowIndex = row.rowIndex;
-        const colIndex = cell.cellIndex;
-        const empty    = crearSpanCelda("", rowIndex, colIndex);
+        const empty = crearSpanCelda("", rowIndex, colIndex);
         input.replaceWith(empty);
         _coordsFromElement(empty);
         _matrixRevisarBorrado(table, rowIndex, colIndex);
+        return;
     }
+
+    setTimeout(() => {
+        if (!input.isConnected || input.value.trim() !== "") return;
+        const empty = crearSpanCelda("", rowIndex, colIndex);
+        input.replaceWith(empty);
+        _coordsFromElement(empty);
+        _matrixRevisarBorrado(table, rowIndex, colIndex);
+    }, 0);
 }
 
 
