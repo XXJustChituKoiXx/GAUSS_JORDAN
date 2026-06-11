@@ -58,23 +58,27 @@ function _tfRevisarBorrado(table, r, c) {
 
     setTimeout(() => {
         let tr = r, tc = c;
+        let filaEliminada = false;
 
-        // ¿Fila vacía?
+        // 1. ¿Fila vacía? → eliminar y subir foco a misma columna
         if (table.rows.length > minRows && Auxiliares.filaVacia(table, r)) {
             Auxiliares.eliminarFila(table, r);
-            // foco sube a misma columna
+            filaEliminada = true;
             tr = Math.max(0, r - 1);
             tc = Math.min(c, (table.rows[tr]?.cells.length ?? 1) - 1);
-        } else if ((table.rows[0]?.cells.length ?? 0) > minCols && Auxiliares.columnaVacia(table, c)) {
-            // ¿Columna vacía?
+        }
+
+        // 2. ¿Columna vacía? → eliminar y retroceder en la fila donde quedó el foco
+        if ((table.rows[0]?.cells.length ?? 0) > minCols && Auxiliares.columnaVacia(table, c)) {
             Auxiliares.eliminarColumna(table, c);
-            // foco va a celda anterior en misma fila
-            tr = r;
+            // el foco ya está en tr (puede haber subido); retroceder columna
             tc = Math.max(0, c - 1);
-        } else {
-            // No se borró nada: ir a celda anterior en misma fila
-            if (c > 0) { tr = r; tc = c - 1; }
-            else if (r > 0) { tr = r - 1; tc = (table.rows[r-1]?.cells.length ?? 1) - 1; }
+        }
+
+        // 3. Si no se eliminó nada: ir a celda anterior en la misma fila
+        if (!filaEliminada && tr === r && tc === c) {
+            if (c > 0) { tc = c - 1; }
+            else if (r > 0) { tr = r - 1; tc = (table.rows[tr]?.cells.length ?? 1) - 1; }
         }
 
         _tfMoveTo(table, tr, tc);
@@ -114,6 +118,7 @@ function _tfFocusout(e) {
     if (_tfMoving) return; // navegación programática: ya se hizo inputToSpan explícito
     const input = e.target;
     if (!input.classList.contains("cell-input")) return;
+    if (!input.isConnected) return; // ya fue reemplazado por backspace
     if (!_tfGetTable(input)) return;
     const c = input.closest("td")?.cellIndex ?? 0;
     const table = _tfGetTable(input);
@@ -236,10 +241,11 @@ function _tfKeydown(e) {
         if (isInput) {
             if (target.value !== "") return; // dejar que el input borre su contenido
             e.preventDefault();
-            // Input ya vacío: convertir a span y revisar borrado estructural
+            // Input ya vacío: activar bandera ANTES de replaceWith para que
+            // el focusout que dispara blur no interfiera
             _tfMoving = true;
             const empty = crearSpanCelda("", r, c);
-            target.replaceWith(empty);
+            if (target.isConnected) target.replaceWith(empty);
             _tfRevisarBorrado(table, r, c);
         } else if (isSpan) {
             e.preventDefault();
