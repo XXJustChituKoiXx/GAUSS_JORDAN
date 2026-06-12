@@ -4062,3 +4062,39 @@ body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
         transform: translateX(36px) !important;
     }
 }
+/* ===== BORDES PARA MATRICES EN TRANSFORMACIONES ===== */
+
+.tf-matrix-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    overflow: visible;
+}
+
+/* Bordes izquierdo y derecho */
+.tf-matrix-container::before,
+.tf-matrix-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+}
+
+.tf-matrix-container::before {
+    left: 0;
+    border-left: 3px solid var(--primary);
+    border-top: 3px solid var(--primary);
+    border-bottom: 3px solid var(--primary);
+    border-radius: 8px 0 0 8px;
+}
+
+.tf-matrix-container::after {
+    right: 0;
+    border-right: 3px solid var(--primary);
+    border-top: 3px solid var(--primary);
+    border-bottom: 3px solid var(--primary);
+    border-radius: 0 8px 8px 0;
+}
