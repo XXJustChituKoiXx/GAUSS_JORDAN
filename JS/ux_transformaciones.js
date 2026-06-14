@@ -16,10 +16,10 @@ let activeV = null;
 let activeW = null;
 let _article = null;
 
-// ─── IDs de las tablas editables ─────────────────────────────────────────────
+// IDs de las tablas editables
 const TABLE_IDS = ["tfB1", "tfB2", "tfB3", "tfB4"];
 
-// ─── Obtener tabla permitida que contiene el elemento ────────────────────────
+// Obtener tabla permitida que contiene el elemento
 function _tfGetTable(el) {
     const table = el.closest("table");
     if (!table) return null;
@@ -27,34 +27,52 @@ function _tfGetTable(el) {
     return table;
 }
 
-// ─── ¿El elemento pertenece a alguna celda TF? ───────────────────────────────
+// ¿El elemento pertenece a alguna celda TF?
 function _tfEsCeldaTF(el) {
     if (!el) return false;
     return !!(el.closest("table") && TABLE_IDS.includes(el.closest("table").id));
 }
 
-// ─── Mover foco a celda (r, c) de una tabla ──────────────────────────────────
+// Mover foco a celda (r, c) de una tabla
 function _tfMoveTo(table, r, c) {
     if (r < 0 || r >= table.rows.length) return;
     const row = table.rows[r];
     if (!row || c < 0 || c >= row.cells.length) return;
     const cell = row.cells[c];
     setTimeout(() => {
-        const span  = cell.querySelector(".cell-span");
+        const span = cell.querySelector(".cell-span");
         const input = cell.querySelector(".cell-input");
-        if (span)       { const inp = spanToInput(span); if (inp) { inp.focus(); inp.select(); } }
+        if (span) { const inp = spanToInput(span); if (inp) { inp.focus(); inp.select(); } }
         else if (input) { input.focus(); input.select(); }
     }, 0);
 }
 
-// ─── Ajustar todas las columnas de una tabla ─────────────────────────────────
+// Ajustar todas las columnas de una tabla
 function _tfAjustarTabla(table) {
     if (!table) return;
     for (let j = 0; j < (table.rows[0]?.cells.length ?? 0); j++)
         ajustarAnchoColumna(table, j);
 }
 
-// ─── Revisar y eliminar filas/columnas vacías, luego reposicionar foco ───────
+// Verificar si una tabla tiene errores
+function _tfTablaTieneErrores(table) {
+    if (!table) return false;
+    const celdas = table.querySelectorAll('.cell-span, .cell-input');
+    for (const celda of celdas) {
+        if (celda.classList && celda.classList.contains('cell-error')) {
+            return true;
+        }
+        const valor = celda.classList?.contains('cell-input') 
+            ? celda.value 
+            : (celda.getAttribute?.('data-value') || celda.textContent || "");
+        if (valor && valor !== "" && !Auxiliares.esValorNumericoValido(valor, true)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Revisar y eliminar filas/columnas vacías, luego reposicionar foco
 function _tfRevisarBorrado(table, r, c) {
     const minRows = parseInt(table.dataset.minRows) || 1;
     const minCols = parseInt(table.dataset.minCols) || 1;
@@ -82,16 +100,16 @@ function _tfRevisarBorrado(table, r, c) {
     actualizarMatricesDerivadas();
 }
 
-// ─── Handler: mousedown (clic en celda) ──────────────────────────────────────
+// Handler: mousedown (clic en celda)
 function _tfMousedown(e) {
     const target = e.target;
     if (target.classList.contains("cell-input")) return;
 
     let span = null, td = null;
-    if      (target.classList.contains("cell-span")) { span = target; td = target.closest("td"); }
-    else if (target.closest(".cell-span"))           { span = target.closest(".cell-span"); td = span.closest("td"); }
-    else if (target.tagName === "TD")                { td = target; span = td.querySelector(".cell-span"); }
-    else if (target.closest("td"))                   { td = target.closest("td"); span = td?.querySelector(".cell-span"); }
+    if (target.classList.contains("cell-span")) { span = target; td = target.closest("td"); }
+    else if (target.closest(".cell-span")) { span = target.closest(".cell-span"); td = span.closest("td"); }
+    else if (target.tagName === "TD") { td = target; span = td.querySelector(".cell-span"); }
+    else if (target.closest("td")) { td = target.closest("td"); span = td?.querySelector(".cell-span"); }
 
     if (!td || !span) return;
     const tableEl = _tfGetTable(td);
@@ -105,7 +123,7 @@ function _tfMousedown(e) {
     if (inp) { inp.focus(); inp.select(); }
 }
 
-// ─── Handler: focusout ───────────────────────────────────────────────────────
+// Handler: focusout
 function _tfFocusout(e) {
     const input = e.target;
     if (!input.classList.contains("cell-input")) return;
@@ -122,7 +140,7 @@ function _tfFocusout(e) {
     actualizarMatricesDerivadas();
 }
 
-// ─── Handler: input (filtrar caracteres) ─────────────────────────────────────
+// Handler: input (filtrar caracteres)
 function _tfInput(e) {
     const input = e.target;
     if (!input.classList.contains("cell-input")) return;
@@ -136,17 +154,22 @@ function _tfInput(e) {
         const f = v.indexOf("/");
         v = v.slice(0, f + 1) + v.slice(f + 1).replace(/\//g, "");
     }
-    if (/^\.\d/.test(v))  v = "0" + v;
+    if (/^\.\d/.test(v)) v = "0" + v;
     if (/^-\.\d/.test(v)) v = "-0" + v.slice(1);
     if (input.value !== v) input.value = v;
     input.style.width = (v.length + 1) + "ch";
+    
+    // Marcar error si el valor no es válido
+    const esValido = v === "" || v === "-" || Auxiliares.esValorNumericoValido(v, true);
+    input.classList.toggle('cell-error', !esValido);
+    actualizarMatricesDerivadas();
 }
 
-// ─── Handler: keydown ────────────────────────────────────────────────────────
+// Handler: keydown
 function _tfKeydown(e) {
-    const target  = e.target;
+    const target = e.target;
     const isInput = target.classList.contains("cell-input");
-    const isSpan  = target.classList.contains("cell-span");
+    const isSpan = target.classList.contains("cell-span");
     if (!isInput && !isSpan) return;
 
     const table = _tfGetTable(target);
@@ -155,7 +178,7 @@ function _tfKeydown(e) {
     const tableKey = Object.keys(MATRICES).find(k => MATRICES[k].id === table.id);
     if (tableKey && MATRICES[tableKey].locked) return;
 
-    const td  = target.closest("td");
+    const td = target.closest("td");
     const row = td?.parentElement;
     if (!td || !row) return;
     const r = row.rowIndex;
@@ -166,28 +189,28 @@ function _tfKeydown(e) {
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         const maxC = (table.rows[r]?.cells.length ?? 1) - 1;
         if (c < maxC) _tfMoveTo(table, r, c + 1);
-        else          _tfMoveTo(table, r, c);
+        else _tfMoveTo(table, r, c);
         return;
     }
     if (e.key === "ArrowLeft") {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         if (c > 0) _tfMoveTo(table, r, c - 1);
-        else       _tfMoveTo(table, r, 0);
+        else _tfMoveTo(table, r, 0);
         return;
     }
     if (e.key === "ArrowUp") {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         if (r > 0) _tfMoveTo(table, r - 1, Math.min(c, (table.rows[r-1]?.cells.length ?? 1) - 1));
-        else       _tfMoveTo(table, 0, c);
+        else _tfMoveTo(table, 0, c);
         return;
     }
     if (e.key === "ArrowDown") {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         if (r < table.rows.length - 1) _tfMoveTo(table, r + 1, Math.min(c, (table.rows[r+1]?.cells.length ?? 1) - 1));
-        else                            _tfMoveTo(table, r, c);
+        else _tfMoveTo(table, r, c);
         return;
     }
 
@@ -195,9 +218,9 @@ function _tfKeydown(e) {
         e.preventDefault();
         if (isInput) { inputToSpan(target); ajustarAnchoColumna(table, c); }
         const maxC = (table.rows[r]?.cells.length ?? 1) - 1;
-        if (c < maxC)                       _tfMoveTo(table, r, c + 1);
+        if (c < maxC) _tfMoveTo(table, r, c + 1);
         else if (r < table.rows.length - 1) _tfMoveTo(table, r + 1, 0);
-        else                                _tfMoveTo(table, r, c);
+        else _tfMoveTo(table, r, c);
         return;
     }
 
@@ -254,41 +277,40 @@ function _tfKeydown(e) {
     }
 }
 
-// ─── Registrar / desregistrar eventos ────────────────────────────────────────
+// Registrar / desregistrar eventos
 let _tfHandlers = {};
 
 function _tfConfigurar(article) {
     _tfDesconfigurar();
     _tfHandlers.mousedown = _tfMousedown;
-    _tfHandlers.keydown   = _tfKeydown;
-    _tfHandlers.input     = (e) => { _tfInput(e); actualizarMatricesDerivadas(); };
-    _tfHandlers.focusout  = _tfFocusout;
+    _tfHandlers.keydown = _tfKeydown;
+    _tfHandlers.input = (e) => { _tfInput(e); actualizarMatricesDerivadas(); };
+    _tfHandlers.focusout = _tfFocusout;
     _tfHandlers.windowKey = (e) => {
         if (e.key === " " && (
             document.activeElement?.classList.contains("cell-input") ||
             document.activeElement?.classList.contains("cell-span")
         )) e.preventDefault();
     };
-    article.addEventListener("mousedown",  _tfHandlers.mousedown);
-    article.addEventListener("keydown",    _tfHandlers.keydown);
-    article.addEventListener("input",      _tfHandlers.input);
-    article.addEventListener("focusout",   _tfHandlers.focusout);
-    window.addEventListener("keydown",     _tfHandlers.windowKey);
+    article.addEventListener("mousedown", _tfHandlers.mousedown);
+    article.addEventListener("keydown", _tfHandlers.keydown);
+    article.addEventListener("input", _tfHandlers.input);
+    article.addEventListener("focusout", _tfHandlers.focusout);
+    window.addEventListener("keydown", _tfHandlers.windowKey);
 }
 
 function _tfDesconfigurar() {
     if (_article) {
-        _article.removeEventListener("mousedown",  _tfHandlers.mousedown);
-        _article.removeEventListener("keydown",    _tfHandlers.keydown);
-        _article.removeEventListener("input",      _tfHandlers.input);
-        _article.removeEventListener("focusout",   _tfHandlers.focusout);
+        _article.removeEventListener("mousedown", _tfHandlers.mousedown);
+        _article.removeEventListener("keydown", _tfHandlers.keydown);
+        _article.removeEventListener("input", _tfHandlers.input);
+        _article.removeEventListener("focusout", _tfHandlers.focusout);
     }
     if (_tfHandlers.windowKey) window.removeEventListener("keydown", _tfHandlers.windowKey);
-    _tfHandlers  = {};
+    _tfHandlers = {};
 }
 
-// ─── Tablas ───────────────────────────────────────────────────────────────────
-
+// Tablas
 function crearTablaEditable(key, rows, cols) {
     const cfg = MATRICES[key];
     const table = UI.createTable(cfg.id);
@@ -331,35 +353,54 @@ function crearTablaResultado(matriz, id) {
     return table;
 }
 
-// ─── Leer matriz y verificar si todas las celdas tienen valor ─────────────────
+// Leer matriz y verificar si todas las celdas tienen valor y son válidas
 function leerMatrizCompleta(tableId) {
     const table = document.getElementById(tableId);
-    if (!table || !table.rows.length) return { matriz: null, completa: false };
+    if (!table || !table.rows.length) return { matriz: null, completa: false, tieneErrores: false };
     
     try {
         let todasCompletas = true;
+        let tieneErrores = false;
         const raw = Array.from(table.rows).map(row =>
             Array.from(row.cells).map(cell => {
                 const input = cell.querySelector(".cell-input");
-                const span  = cell.querySelector(".cell-span");
-                const valor = input
-                    ? input.value.trim()
-                    : (span?.getAttribute("data-value") || "").trim();
+                const span = cell.querySelector(".cell-span");
+                let valor = "";
+                
+                if (input) {
+                    valor = input.value.trim();
+                } else if (span) {
+                    valor = span.getAttribute("data-value") || "";
+                }
+                
+                // Verificar si la celda tiene error visual
+                if ((input && input.classList.contains('cell-error')) || 
+                    (span && span.classList.contains('cell-error'))) {
+                    tieneErrores = true;
+                }
                 
                 // Una celda está vacía si su string está vacío
                 if (valor === "") {
                     todasCompletas = false;
                     return { num: 0, den: 1 };
                 }
+                
+                // Validar que sea un número válido
+                if (!Auxiliares.esValorNumericoValido(valor, true)) {
+                    tieneErrores = true;
+                    todasCompletas = false;
+                    return { num: 0, den: 1 };
+                }
+                
                 const f = Auxiliares.parsearFraccion(valor);
                 const [num, den] = Auxiliares.simplificar(f.num, f.den);
                 return { num, den };
             })
         );
         
-        return { matriz: raw, completa: todasCompletas };
+        return { matriz: raw, completa: todasCompletas, tieneErrores: tieneErrores };
     } catch {
-        return { matriz: null, completa: false };
+        return { matriz: null, completa: false, tieneErrores: true };
     }
 }
 
@@ -383,10 +424,10 @@ function ponerIdentidad(tableId) {
         for (let j = 0; j < table.rows[i].cells.length; j++) {
             const cell = table.rows[i].cells[j];
             const val = i === j ? "1" : "0";
-            const span  = cell.querySelector(".cell-span");
+            const span = cell.querySelector(".cell-span");
             const input = cell.querySelector(".cell-input");
             if (input) { input.value = val; inputToSpan(input); }
-            if (span)  { span.setAttribute("data-value", val); span.textContent = val; }
+            if (span) { span.setAttribute("data-value", val); span.textContent = val; }
         }
     }
     table.querySelectorAll(".cell-span, .cell-input").forEach(el => {
@@ -411,8 +452,7 @@ function _actualizarVisualToggle(key, isOn) {
 }
 
 function toggleIdentidad(key) {
-    const grupo    = (key === "B1" || key === "B2") ? "V" : "W";
-    const pareja   = grupo === "V" ? (key === "B1" ? "B2" : "B1") : (key === "B3" ? "B4" : "B3");
+    const grupo = (key === "B1" || key === "B2") ? "V" : "W";
     const activeRef = grupo === "V" ? activeV : activeW;
 
     const input = document.getElementById(`tfCanonica_${key}`);
@@ -449,16 +489,21 @@ function toggleIdentidad(key) {
 }
 
 function actualizarMatricesDerivadas() {
-    // Leer cada matriz y saber si está completa
+    // Leer cada matriz y verificar si está completa y sin errores
     const b1Data = leerMatrizCompleta(MATRICES.B1.id);
     const b2Data = leerMatrizCompleta(MATRICES.B2.id);
     const b3Data = leerMatrizCompleta(MATRICES.B3.id);
     const b4Data = leerMatrizCompleta(MATRICES.B4.id);
     
-    const b1Completa = b1Data.completa;
-    const b2Completa = b2Data.completa;
-    const b3Completa = b3Data.completa;
-    const b4Completa = b4Data.completa;
+    // Verificar si hay errores en alguna tabla
+    const hayErrores = b1Data.tieneErrores || b2Data.tieneErrores || b3Data.tieneErrores || b4Data.tieneErrores;
+    const todasCompletas = b1Data.completa && b2Data.completa && b3Data.completa && b4Data.completa;
+    
+    if (hayErrores || !todasCompletas) {
+        // Mostrar placeholder en todas las zonas de resultado
+        renderizarResultados(null, null, null, null, true);
+        return;
+    }
     
     const B1 = b1Data.matriz ? limpiarMatriz(b1Data.matriz) : null;
     const B2 = b2Data.matriz ? limpiarMatriz(b2Data.matriz) : null;
@@ -467,19 +512,19 @@ function actualizarMatricesDerivadas() {
     
     // P = matriz cambio de B1 → B2 (solo si B1 y B2 están COMPLETAS y tienen mismas dimensiones)
     let P = null;
-    if (b1Completa && b2Completa && B1 && B2 && esMatrizCuadrada(B1) && mismasDimensiones(B1, B2)) {
+    if (todasCompletas && B1 && B2 && esMatrizCuadrada(B1) && mismasDimensiones(B1, B2)) {
         try { P = matrizCambioBase(B1, B2); } catch { P = null; }
     }
     
     // Q = matriz cambio de B3 → B4 (solo si B3 y B4 están COMPLETAS y tienen mismas dimensiones)
     let Q = null;
-    if (b3Completa && b4Completa && B3 && B4 && esMatrizCuadrada(B3) && mismasDimensiones(B3, B4)) {
+    if (todasCompletas && B3 && B4 && esMatrizCuadrada(B3) && mismasDimensiones(B3, B4)) {
         try { Q = matrizCambioBase(B3, B4); } catch { Q = null; }
     }
     
     // A = matriz transformación de B2 → B3 (solo si B2 y B3 están COMPLETAS y mismas dimensiones)
     let A = null;
-    if (b2Completa && b3Completa && B2 && B3 && esMatrizCuadrada(B2) && esMatrizCuadrada(B3) && B2.length === B3.length) {
+    if (todasCompletas && B2 && B3 && esMatrizCuadrada(B2) && esMatrizCuadrada(B3) && B2.length === B3.length) {
         try {
             const n = B2.length;
             const identidad = Array.from({ length: n }, (_, i) =>
@@ -489,7 +534,7 @@ function actualizarMatricesDerivadas() {
         } catch { A = null; }
     }
     
-    // C = Q·A·P (solo si P, A y Q existen, lo que implica que sus matrices base están completas)
+    // C = Q·A·P (solo si P, A y Q existen)
     let C = null;
     if (P && A && Q) {
         try { 
@@ -498,17 +543,17 @@ function actualizarMatricesDerivadas() {
         } catch { C = null; }
     }
     
-    renderizarResultados(P, Q, A, C);
+    renderizarResultados(P, Q, A, C, false);
 }
 
-function renderizarResultados(P, Q, A, C) {
-    renderMatrizDerivada("zone_P", "P", "B₁→B₂", P);
-    renderMatrizDerivada("zone_Q", "Q", "B₃→B₄", Q);
-    renderMatrizDerivada("zone_A", "A", "B₂→B₃", A);
-    renderMatrizDerivada("zone_C", "C = Q·A·P", "", C);
+function renderizarResultados(P, Q, A, C, hayErrores = false) {
+    renderMatrizDerivada("zone_P", "P", "B₁→B₂", P, hayErrores);
+    renderMatrizDerivada("zone_Q", "Q", "B₃→B₄", Q, hayErrores);
+    renderMatrizDerivada("zone_A", "A", "B₂→B₃", A, hayErrores);
+    renderMatrizDerivada("zone_C", "C = Q·A·P", "", C, hayErrores);
 }
 
-function renderMatrizDerivada(zoneId, nombre, subindice, matriz) {
+function renderMatrizDerivada(zoneId, nombre, subindice, matriz, hayErrores = false) {
     const zone = document.getElementById(zoneId);
     if (!zone) return;
     zone.innerHTML = "";
@@ -518,10 +563,14 @@ function renderMatrizDerivada(zoneId, nombre, subindice, matriz) {
     lbl.className = "tf-derived-label";
     lbl.innerHTML = subindice ? `${nombre}<sub>${subindice}</sub> =` : `${nombre} =`;
     row.appendChild(lbl);
-    if (!matriz) {
+    
+    if (hayErrores || !matriz) {
         const placeholder = document.createElement("div");
         placeholder.className = "tf-derived-placeholder";
         placeholder.textContent = "Esperando bases compatibles…";
+        placeholder.style.color = "var(--text-muted)";
+        placeholder.style.fontStyle = "italic";
+        placeholder.style.padding = "1rem";
         row.appendChild(placeholder);
     } else {
         const matrixContainer = document.createElement("div");
@@ -704,4 +753,4 @@ export function limpiarTransformaciones() {
     Object.values(MATRICES).forEach(m => { m.locked = false; m.isIdentity = false; });
     _tfDesconfigurar();
     _article = null;
-}
+} 

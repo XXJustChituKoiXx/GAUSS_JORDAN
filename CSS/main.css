@@ -4098,3 +4098,214 @@ body:not(.light) #themeToggle.theme-switch .theme-icon.moon {
     border-bottom: 3px solid var(--primary);
     border-radius: 0 8px 8px 0;
 }
+/* Estilos para raíces */
+.root-expression {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-family: monospace;
+}
+
+.root-symbol {
+    font-size: 1.2em;
+    font-weight: normal;
+}
+
+.root-radicando {
+    border-top: 1px solid currentColor;
+    padding-top: 2px;
+    margin-left: 2px;
+    min-width: 1em;
+    text-align: center;
+}
+
+.root-radicando .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.85em;
+}
+
+.root-radicando .frac .top,
+.root-radicando .frac .bottom {
+    font-size: 0.85em;
+}
+
+/* Botón de raíz */
+.btn-raiz {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-raiz:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: var(--primary-dark);
+}
+
+.btn-raiz:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tooltip para botones deshabilitados */
+.btnCalcular:disabled,
+.btn-raiz:disabled {
+    position: relative;
+}
+
+.btnCalcular:disabled:hover::after,
+.btn-raiz:disabled:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+/* Error en celdas */
+.cell-error {
+    animation: errorPulse 0.5s ease-in-out;
+    background-color: rgba(255, 0, 0, 0.2);
+    border: 1px solid red;
+    border-radius: 4px;
+}
+
+@keyframes errorPulse {
+    0% { background-color: rgba(255, 0, 0, 0); }
+    50% { background-color: rgba(255, 0, 0, 0.4); }
+    100% { background-color: rgba(255, 0, 0, 0.2); }
+}
+/* Animación de pulso para errores */
+.cell-error {
+    animation: errorPulse 0.5s ease-in-out;
+    background-color: rgba(255, 0, 0, 0.2);
+    border: 1px solid red;
+    border-radius: 4px;
+}
+
+.cell-error-pulse {
+    animation: errorPulse 0.5s ease-in-out;
+}
+
+@keyframes errorPulse {
+    0% { 
+        background-color: rgba(255, 0, 0, 0);
+        box-shadow: 0 0 0px red;
+    }
+    25% { 
+        background-color: rgba(255, 0, 0, 0.4);
+        box-shadow: 0 0 5px red;
+    }
+    50% { 
+        background-color: rgba(255, 0, 0, 0.6);
+        box-shadow: 0 0 10px red;
+    }
+    75% { 
+        background-color: rgba(255, 0, 0, 0.4);
+        box-shadow: 0 0 5px red;
+    }
+    100% { 
+        background-color: rgba(255, 0, 0, 0.2);
+        box-shadow: 0 0 0px red;
+    }
+}
+
+/* Estilos para raíces */
+.root-expression {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-family: monospace;
+}
+
+.root-symbol {
+    font-size: 1.2em;
+    font-weight: normal;
+}
+
+.root-radicando {
+    border-top: 1px solid currentColor;
+    padding-top: 2px;
+    margin-left: 2px;
+    min-width: 1em;
+    text-align: center;
+}
+
+.root-radicando .frac {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.85em;
+}
+
+.root-radicando .frac .top,
+.root-radicando .frac .bottom {
+    font-size: 0.85em;
+}
+
+/* Botón de raíz */
+.btn-raiz {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-raiz:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: var(--primary-dark);
+}
+
+.btn-raiz:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tooltip para botones deshabilitados */
+.btnCalcular:disabled,
+.btn-raiz:disabled {
+    position: relative;
+}
+
+.btnCalcular:disabled:hover::after,
+.btn-raiz:disabled:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 1000;
+}

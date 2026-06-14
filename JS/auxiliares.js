@@ -1,6 +1,5 @@
-//MCD
+// MCD
 function mcd(a, b) {
-    // Convertir a enteros primero
     a = Math.round(Math.abs(a));
     b = Math.round(Math.abs(b));
     
@@ -15,6 +14,7 @@ function mcd(a, b) {
     }
     return a;
 }
+
 export function simplificar(num, den) {
     if (num === 0) return [0, 1];
     if (den === 0) throw new Error("División por cero en simplificación");
@@ -39,7 +39,6 @@ export function simplificar(num, den) {
         den = Math.round(den * factor);
     }
 
-    // A partir de aquí, num y den son ENTEROS puros garantizados
     const common = mcd(num, den);
     let n = num / common;
     let d = den / common;
@@ -52,13 +51,17 @@ export function simplificar(num, den) {
     return [n, d];
 }
 
-
 // Validar que un texto represente un número o fracción usable en la matriz
 export function esValorNumericoValido(valor, permitirVacio = true) {
     if (valor === null || valor === undefined) return permitirVacio;
 
     const str = String(valor).trim();
     if (str === "") return permitirVacio;
+
+    // Permitir expresiones con raíz
+    if (str.includes('√')) {
+        return true;
+    }
 
     const numero = "-?(?:\\d+(?:\\.\\d*)?|\\.\\d+)";
     const patron = new RegExp(`^${numero}(?:/${numero})?$`);
@@ -85,7 +88,6 @@ export function parsearFraccion(valor) {
 
     const str = String(valor).trim();
 
-    // Si no tiene "/", es entero
     if (!str.includes("/")) {
         const num = Number(str);
         if (isNaN(num)) return { num: 0, den: 1 };
@@ -94,14 +96,12 @@ export function parsearFraccion(valor) {
 
     let [numStr, denStr] = str.split("/");
 
-    // Caso "6/" -> denominador 1
     if (denStr === "" || denStr === undefined) {
         const num = Number(numStr);
         if (isNaN(num)) return { num: 0, den: 1 };
         return { num, den: 1 };
     }
 
-    // Caso "/5" -> numerador 1
     if (numStr === "") {
         const den = Number(denStr);
         if (den === 0) throw new Error("Denominador cero");
@@ -135,7 +135,7 @@ export function sumarFraccionesObj(frac1, frac2) {
     return { num: numSimp, den: denSimp };
 }
 
-// Restar fracciones (para hacer ceros)
+// Restar fracciones
 export function restarFracciones(frac1, frac2) {
     const num = frac1.num * frac2.den - frac2.num * frac1.den;
     const den = frac1.den * frac2.den;
@@ -143,7 +143,7 @@ export function restarFracciones(frac1, frac2) {
     return { num: numSimp, den: denSimp };
 }
 
-// Dividir fracciones (para normalizar pivote)
+// Dividir fracciones
 export function dividirFracciones(frac1, frac2) {
     if (frac2.num === 0) throw new Error("División por cero");
     const num = frac1.num * frac2.den;
@@ -198,8 +198,7 @@ export function parsearMatriz(table) {
     );
 }
 
-
-// Normalizar textos numéricos para evitar ceros a la izquierda y signos redundantes
+// Normalizar textos numéricos
 export function normalizarValorTexto(valor) {
     if (valor === null || valor === undefined) return "";
 
@@ -238,27 +237,25 @@ export function formatearResultado(frac, tieneDecimal) {
     if (!tieneDecimal && Number.isInteger(valorDecimal)) return `${valorDecimal}`;
 
     if (tieneDecimal) {
-
         return Number(valorDecimal.toPrecision(12)).toString();
     }
 
     return `${frac.num}/${frac.den}`;
 }
 
-
 // Detectar si un valor es una fracción
 export function esFraccion(valor) {
     if (!valor || typeof valor !== 'string') return false;
     const fractionPattern = /^-?\d+\.?\d*\/-?\d+\.?\d*$/;
-    
     return fractionPattern.test(valor.trim());
 }
+
 export function tieneDecimales(valor) {
     if (!valor || !esFraccion(valor)) return false;
     return valor.includes('.');
 }
 
-// Función auxiliar para actualizar atributos después de modificaciones
+// Funciones auxiliares para tabla
 function actualizarAtributosTabla(table) {
     for (let i = 0; i < table.rows.length; i++) {
         const row = table.rows[i];
@@ -281,7 +278,6 @@ function actualizarAtributosTabla(table) {
     }
 }
 
-//Agregar fila
 export function agregarFila(table) {
     if (table.rows.length === 0) return;
 
@@ -303,14 +299,12 @@ export function agregarFila(table) {
 
     actualizarAtributosTabla(table);
 
-    // Enfocar el primer span de la nueva fila
     const firstSpan = newRow.cells[0]?.querySelector('.cell-span');
     if (firstSpan) {
         setTimeout(() => firstSpan.click(), 10);
     }
 }
 
-//Agregar columna
 export function agregarColumna(table) {
     const numRows = table.rows.length;
     const colIndex = table.rows[0].cells.length;
@@ -329,14 +323,12 @@ export function agregarColumna(table) {
 
     actualizarAtributosTabla(table);
 
-    // Enfocar el primer span de la nueva columna
     const firstSpan = table.rows[0]?.cells[colIndex]?.querySelector('.cell-span');
     if (firstSpan) {
         setTimeout(() => firstSpan.click(), 10);
     }
 }
 
-//Eliminar fila
 export function eliminarFila(table, rowIndex) {
     if (table.rows[rowIndex]) {
         table.deleteRow(rowIndex);
@@ -344,7 +336,6 @@ export function eliminarFila(table, rowIndex) {
     }
 }
 
-//Eliminar columna
 export function eliminarColumna(table, colIndex) {
     for (let i = 0; i < table.rows.length; i++) {
         if (table.rows[i].cells[colIndex]) {
@@ -387,7 +378,6 @@ export function columnaVacia(table, colIndex) {
     });
 }
 
-//Insertar fila en posición
 export function insertarFila(table, rowIndex) {
     const numCols = table.rows[0].cells.length;
     const newRow = table.insertRow(rowIndex);
@@ -407,7 +397,6 @@ export function insertarFila(table, rowIndex) {
     actualizarAtributosTabla(table);
 }
 
-//Insertar columna en posición
 export function insertarColumna(table, colIndex) {
     for (let i = 0; i < table.rows.length; i++) {
         const cell = table.rows[i].insertCell(colIndex);
@@ -430,7 +419,8 @@ export function normalizarSigno(frac) {
     }
     return { num: frac.num, den: frac.den };
 }
-// Convertir vectores horizontales (strings) a matriz de fracciones (vectores como columnas)
+
+// Convertir vectores horizontales a matriz de fracciones
 export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
     if (!vectores.length || !vectores[0].length) {
         throw new Error("Debe haber al menos un vector con una componente");
@@ -453,7 +443,6 @@ export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
             fila.push(parsearFraccion(valor));
         }
 
-        // Agregar columna de ceros si se requiere
         if (agregarColumnaCeros) {
             fila.push({ num: 0, den: 1 });
         }
@@ -463,7 +452,7 @@ export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
 
     return matriz;
 }
-//
+
 export function esVectorCero(vector) {
     return vector.every(v => esCero(v));
 }
@@ -476,6 +465,287 @@ export function vectorToString(vector) {
     const componentes = vector.map(v => fraccionToString(v));
     return `(${componentes.join(", ")})`;
 }
+
+// ==================== SIMPLIFICACIÓN DE EXPRESIONES ====================
+
+export function simplificarExpresion(expresion) {
+    if (!expresion || typeof expresion !== 'string') return expresion;
+    
+    const trimmed = expresion.trim();
+    
+    if (/^[\d\s\+\-\*\/\(\)\.]+$/.test(trimmed)) {
+        try {
+            const resultado = Function('"use strict"; return (' + trimmed + ')')();
+            if (typeof resultado === 'number' && !isNaN(resultado) && isFinite(resultado)) {
+                if (Number.isInteger(resultado)) return resultado.toString();
+                return resultado.toString();
+            }
+        } catch (e) {}
+    }
+    
+    return expresion;
+}
+
+// ==================== MANEJO DE RAÍCES CUADRADAS ====================
+
+function simplificarRaizNumero(n) {
+    if (n === 0) return { coeficiente: { num: 0, den: 1 }, radicando: 0 };
+    if (n < 0) return { coeficiente: { num: 1, den: 1 }, radicando: -n };
+    
+    let radicando = n;
+    let coeficiente = 1;
+    
+    for (let i = Math.floor(Math.sqrt(radicando)); i >= 2; i--) {
+        if (radicando % (i * i) === 0) {
+            coeficiente *= i;
+            radicando /= (i * i);
+            i = Math.floor(Math.sqrt(radicando)) + 1;
+        }
+    }
+    
+    return { 
+        coeficiente: { num: coeficiente, den: 1 }, 
+        radicando: radicando 
+    };
+}
+
+function parsearExpresionConRaiz(expresion) {
+    if (!expresion || typeof expresion !== 'string') return null;
+    
+    const trimmed = expresion.trim();
+    if (trimmed === "") return null;
+    
+    const raizPattern = /^(-?\d+(?:\/\d+)?)?√\(([^)]+)\)$/;
+    const match = trimmed.match(raizPattern);
+    
+    if (match) {
+        const coeficienteStr = match[1] || "1";
+        const radicandoStr = match[2];
+        
+        const coeficiente = parsearFraccion(coeficienteStr);
+        const radicando = parsearFraccion(radicandoStr);
+        
+        const radicandoVal = radicando.num / radicando.den;
+        const raizVal = Math.sqrt(radicandoVal);
+        const esExacta = Math.abs(raizVal - Math.round(raizVal)) < 1e-10;
+        
+        if (esExacta) {
+            const resultado = raizVal * (coeficiente.num / coeficiente.den);
+            const [num, den] = simplificar(Math.round(resultado * 1000), 1000);
+            return { tipo: "numero", valor: { num, den } };
+        }
+        
+        const { coeficiente: raizCoef, radicando: nuevoRadicando } = simplificarRaizNumero(radicandoVal);
+        const nuevoCoef = multiplicarFracciones(coeficiente, raizCoef);
+        
+        if (nuevoRadicando === 1) {
+            const [num, den] = simplificar(nuevoCoef.num, nuevoCoef.den);
+            return { tipo: "numero", valor: { num, den } };
+        }
+        
+        return {
+            tipo: "raiz",
+            coeficiente: nuevoCoef,
+            radicando: { num: nuevoRadicando, den: 1 },
+            radicandoOriginal: nuevoRadicando.toString(),
+            esExacta: false
+        };
+    }
+    
+    if (esValorNumericoValido(trimmed, true)) {
+        const fraccion = parsearFraccion(trimmed);
+        return { tipo: "numero", valor: fraccion };
+    }
+    
+    return null;
+}
+
+function sumarExpresionesRaiz(expr1, expr2) {
+    if (expr1.tipo === "numero" && expr2.tipo === "numero") {
+        const suma = sumarFraccionesObj(expr1.valor, expr2.valor);
+        const [num, den] = simplificar(suma.num, suma.den);
+        return { tipo: "numero", valor: { num, den } };
+    }
+    
+    if (expr1.tipo === "raiz" && expr2.tipo === "raiz") {
+        const rad1Val = expr1.radicando.num / expr1.radicando.den;
+        const rad2Val = expr2.radicando.num / expr2.radicando.den;
+        
+        if (Math.abs(rad1Val - rad2Val) < 1e-10) {
+            const sumaCoef = sumarFraccionesObj(expr1.coeficiente, expr2.coeficiente);
+            if (sumaCoef.num === 0) {
+                return { tipo: "numero", valor: { num: 0, den: 1 } };
+            }
+            return {
+                tipo: "raiz",
+                coeficiente: sumaCoef,
+                radicando: expr1.radicando,
+                radicandoOriginal: expr1.radicandoOriginal,
+                esExacta: false
+            };
+        }
+    }
+    
+    return null;
+}
+
+export function evaluarExpresionCompleta(expresionStr) {
+    if (!expresionStr || expresionStr.trim() === "") return null;
+    
+    const trimmed = expresionStr.trim();
+    
+    const terminos = [];
+    let currentTermino = "";
+    let profundidad = 0;
+    
+    for (let i = 0; i < trimmed.length; i++) {
+        const char = trimmed[i];
+        
+        if (char === '(' && trimmed[i-1] === '√') {
+            profundidad++;
+        } else if (char === ')') {
+            profundidad--;
+        }
+        
+        if ((char === '+' || char === '-') && profundidad === 0 && i !== 0) {
+            if (currentTermino) {
+                terminos.push(currentTermino);
+                currentTermino = "";
+            }
+            currentTermino += char;
+        } else {
+            currentTermino += char;
+        }
+    }
+    if (currentTermino) terminos.push(currentTermino);
+    
+    let resultado = null;
+    
+    for (const termino of terminos) {
+        const expr = parsearExpresionConRaiz(termino);
+        if (!expr) return null;
+        
+        if (resultado === null) {
+            resultado = expr;
+        } else {
+            const suma = sumarExpresionesRaiz(resultado, expr);
+            if (!suma) return null;
+            resultado = suma;
+        }
+    }
+    
+    return resultado;
+}
+
+export function expresionRaizToString(expr) {
+    if (!expr) return "";
+    
+    if (expr.tipo === "numero") {
+        return fraccionToString(expr.valor);
+    }
+    
+    if (expr.tipo === "raiz") {
+        const coef = expr.coeficiente;
+        const coefVal = coef.num / coef.den;
+        
+        if (coefVal === 1) {
+            return `√(${fraccionToString(expr.radicando)})`;
+        }
+        if (coefVal === -1) {
+            return `-√(${fraccionToString(expr.radicando)})`;
+        }
+        return `${fraccionToString(coef)}√(${fraccionToString(expr.radicando)})`;
+    }
+    
+    return "";
+}
+
+export function crearRaizHTML(expr) {
+    if (!expr) return document.createTextNode("");
+    
+    if (expr.tipo === "numero") {
+        const texto = fraccionToString(expr.valor);
+        if (texto.includes("/")) {
+            const [num, den] = texto.split("/");
+            const span = document.createElement("span");
+            span.className = "frac";
+            span.innerHTML = `<span class="top">${num}</span><span class="bottom">${den}</span>`;
+            return span;
+        }
+        return document.createTextNode(texto);
+    }
+    
+    if (expr.tipo === "raiz") {
+        const container = document.createElement("span");
+        container.className = "root-expression";
+        container.style.display = "inline-flex";
+        container.style.alignItems = "center";
+        container.style.gap = "2px";
+        
+        const coef = expr.coeficiente;
+        const coefVal = coef.num / coef.den;
+        
+        if (coefVal !== 1 && coefVal !== -1) {
+            const coefSpan = document.createElement("span");
+            if (coef.den === 1) {
+                coefSpan.textContent = coef.num.toString();
+            } else {
+                coefSpan.className = "frac";
+                coefSpan.innerHTML = `<span class="top">${coef.num}</span><span class="bottom">${coef.den}</span>`;
+            }
+            container.appendChild(coefSpan);
+        } else if (coefVal === -1) {
+            const minusSpan = document.createElement("span");
+            minusSpan.textContent = "-";
+            container.appendChild(minusSpan);
+        }
+        
+        const rootSymbol = document.createElement("span");
+        rootSymbol.className = "root-symbol";
+        rootSymbol.textContent = "√";
+        rootSymbol.style.fontSize = "1.2em";
+        container.appendChild(rootSymbol);
+        
+        const radicandoSpan = document.createElement("span");
+        radicandoSpan.className = "root-radicando";
+        radicandoSpan.style.borderTop = "1px solid currentColor";
+        radicandoSpan.style.paddingTop = "2px";
+        radicandoSpan.style.marginLeft = "2px";
+        
+        const radVal = expr.radicando;
+        if (radVal.den === 1) {
+            radicandoSpan.textContent = radVal.num.toString();
+        } else {
+            const fracSpan = document.createElement("span");
+            fracSpan.className = "frac";
+            fracSpan.innerHTML = `<span class="top">${radVal.num}</span><span class="bottom">${radVal.den}</span>`;
+            radicandoSpan.appendChild(fracSpan);
+        }
+        
+        container.appendChild(radicandoSpan);
+        return container;
+    }
+    
+    return document.createTextNode("");
+}
+
+export function tablaTieneErrores(table) {
+    if (!table) return false;
+    const celdas = table.querySelectorAll('.cell-span, .cell-input');
+    for (const celda of celdas) {
+        if (celda.classList && celda.classList.contains('cell-error')) {
+            return true;
+        }
+        const valor = celda.classList?.contains('cell-input') 
+            ? celda.value 
+            : (celda.getAttribute?.('data-value') || celda.textContent || "");
+        if (valor && valor !== "" && !esValorNumericoValido(valor, true) && !valor.includes('√')) {
+            return true;
+        }
+    }
+    return false;
+}
+
 const auxiliares = {
     esVectorCero,
     obtenerColumna,
@@ -503,7 +773,12 @@ const auxiliares = {
     tieneDecimales,
     formatearResultado,
     parsearVectoresAMatriz,
-    normalizarValorTexto
+    normalizarValorTexto,
+    simplificarExpresion,
+    evaluarExpresionCompleta,
+    expresionRaizToString,
+    crearRaizHTML,
+    tablaTieneErrores
 };
 
 export default auxiliares;

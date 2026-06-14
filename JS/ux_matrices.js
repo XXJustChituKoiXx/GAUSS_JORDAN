@@ -1,7 +1,7 @@
 import UI, { createSection } from "./ui.js";
 import Auxiliares from "./auxiliares.js";
 import { resolverAXB, resolverInv, calcularDet } from "./calculos.js";
-import { crearSpanCelda, inputToSpan, spanToInput } from "./celdas.js";
+import { crearSpanCelda, inputToSpan, spanToInput, setLastFocusedCell, guardarCeldaActual, restaurarFoco } from "./celdas.js";
 import { configurarEventos, ajustarAnchoColumna } from "./eventos_celdas.js";
 
 let currentOperation = "axb";
@@ -80,8 +80,6 @@ function enfocarPrimeraCeldaMatriz(table) {
     }
 }
 
-// En ux_matrices.js, modifica la función inicializarMatriz:
-
 export function inicializarMatriz(article, modo) {
     currentOperation = modo;
     limpiar(article);
@@ -130,15 +128,27 @@ export function inicializarMatriz(article, modo) {
 
     const button = UI.createButton("btnCalcular", buttonText, "btnCalcular");
     const btnLimpiar = UI.createButton("btnLimpiarMatriz", "Borrar matriz", "btnCalcular btnLimpiarEV");
+    
+    // Botón de raíz cuadrada - CORREGIDO
+    const btnRaiz = document.createElement("button");
+    btnRaiz.type = "button";
+    btnRaiz.className = "btn-raiz";
+    btnRaiz.textContent = "√";
+    btnRaiz.title = "Insertar raíz cuadrada (selecciona una celda)";
+
+    btnRaiz.addEventListener('mousedown', (e) => {
+        e.preventDefault();  // Evita que el botón tome el foco
+    });
+
     const buttonGroup = document.createElement("div");
     buttonGroup.className = "matrix-actions";
-    buttonGroup.append(button, btnLimpiar);
+    buttonGroup.append(btnRaiz, button, btnLimpiar);
 
     mainSection.appendChild(wrapper);
     mainSection.appendChild(buttonGroup);
     article.appendChild(mainSection);
 
-    // PRIMERO configurar eventos, después actualizar el separador
+    // Configurar eventos de celdas
     configurarEventos(article, table, modo);
 
     if (modo === "axb") actualizarSeparadorGlobal(table);
@@ -147,19 +157,56 @@ export function inicializarMatriz(article, modo) {
     const btnCalcular = document.getElementById("btnCalcular");
     const btnLimpiarMatriz = document.getElementById("btnLimpiarMatriz");
 
+    // Evento del botón de raíz - AHORA FUNCIONA CORRECTAMENTE
+    btnRaiz.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const { insertarRaiz } = await import("./celdas.js");
+        insertarRaiz();
+    });
+
+    // Botón limpiar
     if (btnLimpiarMatriz) {
-        // Remover eventos anteriores antes de agregar nuevos
         const newBtnLimpiar = btnLimpiarMatriz.cloneNode(true);
         btnLimpiarMatriz.parentNode.replaceChild(newBtnLimpiar, btnLimpiarMatriz);
         newBtnLimpiar.onclick = () => limpiarMatrizActual(table);
     }
 
+    // Función para actualizar estado del botón calcular según errores
+    const actualizarEstadoBotonCalcular = () => {
+        const hayErrores = Auxiliares.tablaTieneErrores(table);
+        if (btnCalcular) {
+            btnCalcular.disabled = hayErrores;
+            btnCalcular.style.opacity = hayErrores ? "0.5" : "1";
+            btnCalcular.style.cursor = hayErrores ? "not-allowed" : "pointer";
+            btnCalcular.title = hayErrores ? "Corrige los valores marcados en rojo antes de calcular" : "";
+        }
+    };
+
+    // Observer para detectar cambios en la tabla
+    const observer = new MutationObserver(() => {
+        actualizarEstadoBotonCalcular();
+    });
+    
+    observer.observe(table, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'data-value']
+    });
+    
+    actualizarEstadoBotonCalcular();
+
+    // Configurar evento del botón calcular según el modo
     if (modo === "axb") {
         if (btnCalcular) {
             const newBtn = btnCalcular.cloneNode(true);
             btnCalcular.parentNode.replaceChild(newBtn, btnCalcular);
             newBtn.onclick = () => {
-                ajustarTodaLaTabla(table); 
+                const inputs = table.querySelectorAll('.cell-input');
+                inputs.forEach(input => inputToSpan(input));
+                ajustarTodaLaTabla(table);
                 calcularSistemasEcuaciones();
             };
         }
@@ -168,7 +215,9 @@ export function inicializarMatriz(article, modo) {
             const newBtn = btnCalcular.cloneNode(true);
             btnCalcular.parentNode.replaceChild(newBtn, btnCalcular);
             newBtn.onclick = () => {
-                ajustarTodaLaTabla(table); 
+                const inputs = table.querySelectorAll('.cell-input');
+                inputs.forEach(input => inputToSpan(input));
+                ajustarTodaLaTabla(table);
                 calcularInversa();
             };
         }
@@ -177,21 +226,28 @@ export function inicializarMatriz(article, modo) {
             const newBtn = btnCalcular.cloneNode(true);
             btnCalcular.parentNode.replaceChild(newBtn, btnCalcular);
             newBtn.onclick = () => {
-                ajustarTodaLaTabla(table); 
+                const inputs = table.querySelectorAll('.cell-input');
+                inputs.forEach(input => inputToSpan(input));
+                ajustarTodaLaTabla(table);
                 calcularDeterminante();
             };
         }
     }
     
-    // Enfocar la primera celda directamente (sin click artificial)
-    const firstSpan = table.querySelector('.cell-span');
-    if (firstSpan) {
-        const firstInput = spanToInput(firstSpan);
-        if (firstInput) {
-            firstInput.focus();
-            firstInput.select();
+    // Enfocar la primera celda
+    setTimeout(() => {
+        const firstSpan = table.querySelector('.cell-span');
+        if (firstSpan) {
+            const firstInput = spanToInput(firstSpan);
+            if (firstInput) {
+                firstInput.focus();
+                firstInput.select();
+            }
         }
-    }
+    }, 100);
+    
+    // Guardar referencia al observer para limpiar después si es necesario
+    table._validationObserver = observer;
 }
 
 function ajustarTodaLaTabla(table) {
@@ -201,6 +257,7 @@ function ajustarTodaLaTabla(table) {
         ajustarAnchoColumna(table, j);
     }
 }
+
 export function cambiarModo(article, nuevoModo) {
     const table = document.getElementById("inputTable");
 
@@ -263,6 +320,14 @@ function limpiarMatrizActual(table) {
     else eliminarSeparadorGlobal(table);
 
     limpiarResultados();
+    
+    // Limpiar errores visuales
+    const allCells = table.querySelectorAll('.cell-span, .cell-input');
+    allCells.forEach(cell => {
+        cell.classList.remove('cell-error');
+        cell.classList.remove('cell-error-pulse');
+    });
+    
     setTimeout(() => enfocarPrimeraCeldaMatriz(table), 20);
 }
 

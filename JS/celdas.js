@@ -2,6 +2,9 @@ import Auxiliares from "./auxiliares.js";
 
 // Variable para saber si estamos en modo EV
 let isEVMode = false;
+let celdaEnfocada = null;
+let lastFocusedCell = null;
+let ultimaCeldaEditada = null;
 
 export function setEVMode(enabled) {
     isEVMode = enabled;
@@ -26,8 +29,14 @@ export function validarCamposEV(table) {
         const texto = String(valor || "").trim();
         const esInvalido = texto !== "" && !Auxiliares.esValorNumericoValido(texto, true);
 
-        celda.classList.toggle('cell-error', esInvalido);
-        if (esInvalido) hayErrores = true;
+        if (esInvalido) {
+            celda.classList.add('cell-error');
+            agregarPulsoError(celda);
+            hayErrores = true;
+        } else {
+            celda.classList.remove('cell-error');
+            celda.classList.remove('cell-error-pulse');
+        }
     });
 
     return hayErrores;
@@ -51,10 +60,12 @@ export function actualizarBotonCalcularEV() {
         btnCalcular.disabled = true;
         btnCalcular.style.opacity = "0.5";
         btnCalcular.style.cursor = "not-allowed";
+        btnCalcular.title = "Corrige los valores marcados en rojo antes de calcular";
     } else {
         btnCalcular.disabled = false;
         btnCalcular.style.opacity = "1";
         btnCalcular.style.cursor = "pointer";
+        btnCalcular.title = "";
     }
 }
 
@@ -99,7 +110,6 @@ export function ajustarAnchoColumnaEV(table, colIndex) {
                 span.style.lineHeight = "1.4";
             }
             
-            // También ajustar input si existe
             const input = cell.querySelector('.cell-input');
             if (input) {
                 input.style.width = finalWidth;
@@ -117,15 +127,102 @@ export function ajustarTodasColumnasEV(table) {
     }
 }
 
-export function crearSpanCelda(value, row, col) {
-    const valorNormalizado = Auxiliares.normalizarValorTexto(value);
+// Función para actualizar botón calcular por tabla
+function actualizarEstadoBotonCalcularPorTabla(table, hayErrores) {
+    const btnCalcular = document.getElementById("btnCalcular");
+    if (btnCalcular) {
+        btnCalcular.disabled = hayErrores;
+        btnCalcular.style.opacity = hayErrores ? "0.5" : "1";
+        btnCalcular.style.cursor = hayErrores ? "not-allowed" : "pointer";
+        btnCalcular.title = hayErrores ? "Corrige los valores marcados en rojo antes de calcular" : "";
+    }
+    
+    const btnCalcularEV = document.getElementById("btnCalcularEV");
+    if (btnCalcularEV) {
+        btnCalcularEV.disabled = hayErrores;
+        btnCalcularEV.style.opacity = hayErrores ? "0.5" : "1";
+        btnCalcularEV.style.cursor = hayErrores ? "not-allowed" : "pointer";
+        btnCalcularEV.title = hayErrores ? "Corrige los valores marcados en rojo antes de calcular" : "";
+    }
+    
+    const btnDiagonalizar = document.getElementById("btnDiagonalizar");
+    if (btnDiagonalizar) {
+        btnDiagonalizar.disabled = hayErrores;
+        btnDiagonalizar.style.opacity = hayErrores ? "0.5" : "1";
+        btnDiagonalizar.style.cursor = hayErrores ? "not-allowed" : "pointer";
+        btnDiagonalizar.title = hayErrores ? "Corrige los valores marcados en rojo antes de calcular" : "";
+    }
+}
+
+// Función para obtener la celda enfocada
+export function getCeldaEnfocada() {
+    const active = document.activeElement;
+    if (active && (active.classList.contains('cell-input') || active.classList.contains('cell-span'))) {
+        return active;
+    }
+    return lastFocusedCell || celdaEnfocada;
+}
+
+// Función para guardar la celda enfocada antes de perder foco
+export function setLastFocusedCell(cell) {
+    lastFocusedCell = cell;
+}
+
+// Guardar la celda actual
+export function guardarCeldaActual() {
+    const activo = document.activeElement;
+    if (activo && (activo.classList.contains('cell-input') || activo.classList.contains('cell-span'))) {
+        ultimaCeldaEditada = activo;
+        return true;
+    }
+    return false;
+}
+
+// Restaurar el foco a la última celda
+export function restaurarFoco() {
+    if (ultimaCeldaEditada && ultimaCeldaEditada.isConnected) {
+        if (ultimaCeldaEditada.classList.contains('cell-span')) {
+            spanToInput(ultimaCeldaEditada);
+        } else if (ultimaCeldaEditada.classList.contains('cell-input')) {
+            ultimaCeldaEditada.focus();
+            ultimaCeldaEditada.select();
+        }
+        return true;
+    }
+    return false;
+}
+
+// Función para restaurar el foco a la última celda
+export function restoreFocus() {
+    if (lastFocusedCell && lastFocusedCell.isConnected) {
+        if (lastFocusedCell.classList.contains('cell-span')) {
+            spanToInput(lastFocusedCell);
+        } else if (lastFocusedCell.classList.contains('cell-input')) {
+            lastFocusedCell.focus();
+            lastFocusedCell.select();
+        }
+        return true;
+    }
+    return false;
+}
+
+// Función para añadir pulso de error a una celda
+export function agregarPulsoError(elemento) {
+    if (!elemento) return;
+    
+    // Agregar clase de error (que tiene la animación infinita)
+    elemento.classList.add('cell-error');
+}
+
+// Función para crear span con soporte para raíces
+export function crearSpanCeldaConRaiz(value, exprSimplificada, row, col) {
     const span = document.createElement("span");
     span.className = "cell-span";
     span.setAttribute("data-row", row);
     span.setAttribute("data-col", col);
+    span.setAttribute("data-value", value);
     span.tabIndex = 0;
     
-    // Estilos base para todos los spans
     span.style.display = "inline-flex";
     span.style.alignItems = "center";
     span.style.justifyContent = "center";
@@ -135,34 +232,54 @@ export function crearSpanCelda(value, row, col) {
     span.style.verticalAlign = "middle";
     span.style.lineHeight = "1.4";
     span.style.minWidth = "6ch";
-
-    if (valorNormalizado && Auxiliares.esFraccion(valorNormalizado) && Auxiliares.esValorNumericoValido(valorNormalizado, true)) {
-        const fraccion = Auxiliares.parsearFraccion(valorNormalizado);
+    
+    if (exprSimplificada) {
+        const contenido = Auxiliares.crearRaizHTML(exprSimplificada);
+        span.appendChild(contenido);
+    } else if (value && Auxiliares.esFraccion(value) && Auxiliares.esValorNumericoValido(value, true)) {
+        const fraccion = Auxiliares.parsearFraccion(value);
         const [numSimp, denSimp] = Auxiliares.simplificar(fraccion.num, fraccion.den);
         const valorSimplificado = denSimp === 1 ? `${numSimp}` : `${numSimp}/${denSimp}`;
-
+        
+        span.setAttribute('data-value', valorSimplificado);
         if (denSimp === 1) {
-            span.setAttribute('data-value', valorSimplificado);
             span.textContent = numSimp;
         } else {
-            span.setAttribute('data-value', valorSimplificado);
             span.innerHTML = `<span class="frac" style="display:inline-flex; flex-direction:column; align-items:center;"><span class="top">${numSimp}</span><span class="bottom">${denSimp}</span></span>`;
         }
     } else {
-        span.setAttribute('data-value', valorNormalizado || "");
-        span.textContent = valorNormalizado || "";
+        span.setAttribute('data-value', value || "");
+        span.textContent = value || "";
     }
     
-    if (valorNormalizado !== "" && !Auxiliares.esValorNumericoValido(valorNormalizado, true)) {
+    if (value && value !== "" && !Auxiliares.esValorNumericoValido(value, true) && !value.includes('√')) {
         span.classList.add('cell-error');
+        agregarPulsoError(span);
     }
-
-    const contentLength = (valorNormalizado || "").length;
+    
+    const contentLength = (value || "").length;
     const initialWidth = Math.max(6, contentLength + 1);
     span.style.width = initialWidth + "ch";
-
+    
+    span.addEventListener('focus', () => { 
+        celdaEnfocada = span;
+        lastFocusedCell = span;
+        ultimaCeldaEditada = span;
+    });
+    span.addEventListener('click', () => { 
+        celdaEnfocada = span;
+        lastFocusedCell = span;
+        ultimaCeldaEditada = span;
+    });
+    
     return span;
 }
+
+// Función base crearSpanCelda
+export function crearSpanCelda(value, row, col) {
+    return crearSpanCeldaConRaiz(value, null, row, col);
+}
+
 
 export function spanToInput(span) {
     if (!span || !span.classList.contains('cell-span')) return null;
@@ -170,24 +287,88 @@ export function spanToInput(span) {
     const row = parseInt(span.getAttribute('data-row'));
     const col = parseInt(span.getAttribute('data-col'));
     const value = span.getAttribute('data-value') || '';
+    
+    let valorParaInput = value;
+    if (contieneRaiz(value)) {
+        valorParaInput = value;
+    } else if (value && !contieneRaiz(value)) {
+        const evaluado = Auxiliares.evaluarExpresionCompleta(value);
+        if (evaluado) {
+            valorParaInput = Auxiliares.expresionRaizToString(evaluado);
+        }
+    }
 
     const input = document.createElement("input");
     input.type = "text";
     input.className = "cell-input";
-    input.value = value;
+    input.value = valorParaInput;
     input.setAttribute("data-row", row);
     input.setAttribute("data-col", col);
     
-    // Ancho mínimo cuadrado para inputs
     const minWidth = 6;
-    const calculatedWidth = Math.max(minWidth, value.length + 1);
+    const calculatedWidth = Math.max(minWidth, valorParaInput.length + 1);
     input.style.width = calculatedWidth + "ch";
     input.style.minWidth = minWidth + "ch";
     input.style.textAlign = "center";
 
+    const table = span.closest('table');
+    if (value && !Auxiliares.esValorNumericoValido(value, true) && !contieneRaiz(value)) {
+        input.classList.add('cell-error');
+    }
+
     span.replaceWith(input);
+    
+    lastFocusedCell = input;
+    ultimaCeldaEditada = input;
+    
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
+    
+    celdaEnfocada = input;
+    
+    input.addEventListener('focus', () => { 
+        celdaEnfocada = input;
+        lastFocusedCell = input;
+        ultimaCeldaEditada = input;
+    });
+    input.addEventListener('blur', () => { 
+        if (celdaEnfocada === input) celdaEnfocada = null;
+        inputToSpan(input);
+    });
+    
+    input.addEventListener('input', function(e) {
+        let v = this.value;
+        
+        // Preservar estructura de raíz al editar
+        if (contieneRaiz(this._previousValue) || contieneRaiz(v)) {
+            // Si la raíz está presente, permitir edición dentro de paréntesis
+            const raizMatch = v.match(/√\([^)]*\)/);
+            if (raizMatch) {
+                // Mantener la estructura √(contenido)
+                // No hacer validación numérica estricta mientras se edita la raíz
+                this.classList.remove('cell-error');
+            }
+        }
+        
+        const esValido = v === "" || Auxiliares.esValorNumericoValido(v, true) || contieneRaiz(v);
+        
+        if (!esValido && !contieneRaiz(v)) {
+            this.classList.add('cell-error');
+            agregarPulsoError(this);
+        } else {
+            this.classList.remove('cell-error');
+            this.classList.remove('cell-error-pulse');
+        }
+        
+        const parentTable = this.closest('table');
+        const hayErrores = parentTable ? Auxiliares.tablaTieneErrores(parentTable) : false;
+        actualizarEstadoBotonCalcularPorTabla(parentTable, hayErrores);
+        this.style.width = Math.max(minWidth, this.value.length + 1) + "ch";
+        
+        this._previousValue = v;
+    });
+    
+    input._previousValue = input.value;
     
     return input;
 }
@@ -197,26 +378,42 @@ export function inputToSpan(input) {
 
     const row = parseInt(input.getAttribute('data-row'));
     const col = parseInt(input.getAttribute('data-col'));
-    const value = input.value.trim();
+    let value = input.value.trim();
 
-    let finalValue = Auxiliares.normalizarValorTexto(value);
+    let finalValue = value;
+    let exprSimplificada = null;
+    
+    if (contieneRaiz(value)) {
+        // Mantener la expresión de raíz tal como está, no simplificar
+        finalValue = value;
+        // Solo evaluar si es necesario para mostrar decimales
+        if (!value.includes('√()') && !value.includes('√)')) {
+            exprSimplificada = Auxiliares.evaluarExpresionCompleta(value);
+        }
+    } else {
+        value = Auxiliares.simplificarExpresion(value);
+        finalValue = Auxiliares.normalizarValorTexto(value);
+    }
 
     if (finalValue === "/") {
         finalValue = "";
     }
 
-    const span = crearSpanCelda(finalValue, row, col);
+    const span = crearSpanCeldaConRaiz(finalValue, exprSimplificada, row, col);
     
-    // Preservar clase de error si existía o si el valor final no es usable
-    if (input.classList.contains('cell-error') || (finalValue !== "" && !Auxiliares.esValorNumericoValido(finalValue, true))) {
+    if (input.classList.contains('cell-error') || (finalValue !== "" && !Auxiliares.esValorNumericoValido(finalValue, true) && !contieneRaiz(finalValue))) {
         span.classList.add('cell-error');
+        agregarPulsoError(span);
     }
     
     try {
         input.replaceWith(span);
         
+        const table = span.closest('table');
+        const hayErrores = table ? Auxiliares.tablaTieneErrores(table) : false;
+        actualizarEstadoBotonCalcularPorTabla(table, hayErrores);
+        
         if (isEVMode) {
-            const table = span.closest('#inputTable');
             if (table) {
                 setTimeout(() => {
                     ajustarTodasColumnasEV(table);
@@ -230,7 +427,7 @@ export function inputToSpan(input) {
 
     return span;
 }
-
+// Función para enfocar una celda específica
 export function focusCell(row, col, table) {
     if (row < 0 || col < 0 || row >= table.rows.length) return false;
     if (col >= table.rows[row].cells.length) return false;
@@ -250,4 +447,109 @@ export function focusCell(row, col, table) {
     }
 
     return false;
+}
+export function contieneRaiz(valor) {
+    return valor && typeof valor === 'string' && valor.includes('√');
+}
+
+// Función para extraer y preservar la estructura de raíz
+export function preservarEstructuraRaiz(valorActual, nuevoValor, cursorPos) {
+    // Si el valor actual tiene √() y estamos editando dentro
+    const raizPattern = /√\(([^)]*)\)/g;
+    let match;
+    let lastIndex = 0;
+    let resultado = '';
+    let encontrado = false;
+    
+    while ((match = raizPattern.exec(valorActual)) !== null) {
+        encontrado = true;
+        // Texto antes de la raíz
+        resultado += valorActual.slice(lastIndex, match.index);
+        
+        // Verificar si el cursor está dentro de los paréntesis de esta raíz
+        const raizInicio = match.index;
+        const raizFin = match.index + match[0].length;
+        const dentroDeParentesis = cursorPos > match.index + 2 && cursorPos <= raizFin - 1;
+        
+        if (dentroDeParentesis) {
+            // Estamos editando dentro de los paréntesis
+            const contenidoActual = match[1];
+            const offsetEnParentesis = cursorPos - (match.index + 2);
+            
+            // Determinar qué se está insertando
+            let nuevoContenido;
+            if (nuevoValor.length === 1 && !isNaN(parseInt(nuevoValor)) && nuevoValor !== '') {
+                // Insertar dígito dentro del paréntesis
+                nuevoContenido = contenidoActual.slice(0, offsetEnParentesis) + nuevoValor + contenidoActual.slice(offsetEnParentesis);
+            } else if (nuevoValor === '' && offsetEnParentesis > 0) {
+                // Borrar un carácter dentro del paréntesis
+                nuevoContenido = contenidoActual.slice(0, offsetEnParentesis - 1) + contenidoActual.slice(offsetEnParentesis);
+            } else {
+                nuevoContenido = contenidoActual;
+            }
+            
+            resultado += `√(${nuevoContenido})`;
+        } else {
+            resultado += match[0];
+        }
+        
+        lastIndex = match.index + match[0].length;
+    }
+    
+    if (encontrado) {
+        resultado += valorActual.slice(lastIndex);
+        return resultado;
+    }
+    
+    return nuevoValor;
+}
+
+export function insertarRaiz() {
+    let elementoActivo = document.activeElement;
+    
+    // Si es un span, convertirlo a input
+    if (elementoActivo && elementoActivo.classList.contains('cell-span')) {
+        elementoActivo = spanToInput(elementoActivo);
+    }
+    
+    // Si no es un input, salir
+    if (!elementoActivo || !elementoActivo.classList.contains('cell-input')) {
+        return false;
+    }
+    
+    // Guardar posición del cursor
+    const cursorPos = elementoActivo.selectionStart || 0;
+    const currentValue = elementoActivo.value;
+    
+    // Buscar si ya hay una raíz en la posición del cursor
+    let insertPosition = cursorPos;
+    let dentroDeRaiz = false;
+    
+    // Verificar si el cursor está dentro de una raíz existente
+    const raizPattern = /√\([^)]*\)/g;
+    let match;
+    while ((match = raizPattern.exec(currentValue)) !== null) {
+        const inicioRaiz = match.index;
+        const finRaiz = match.index + match[0].length;
+        if (cursorPos > inicioRaiz && cursorPos < finRaiz) {
+            dentroDeRaiz = true;
+            break;
+        }
+    }
+    
+    let nuevoValor;
+    if (dentroDeRaiz) {
+        // Si estamos dentro de una raíz, no insertar otra, mantener el cursor
+        nuevoValor = currentValue;
+        insertPosition = cursorPos;
+    } else {
+        // Insertar nueva raíz
+        nuevoValor = currentValue.slice(0, cursorPos) + "√()" + currentValue.slice(cursorPos);
+        insertPosition = cursorPos + 2;
+    }
+    
+    elementoActivo.value = nuevoValor;
+    elementoActivo.setSelectionRange(insertPosition, insertPosition);
+    
+    return true;
 }
