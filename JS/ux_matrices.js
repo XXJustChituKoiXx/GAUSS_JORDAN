@@ -342,9 +342,9 @@ function mostrarError(container, mensaje) {
 
 function crearFraccionHTML(valor, tieneDecimal = false) {
     if (tieneDecimal) return valor;
-    const str = Auxiliares.fraccionToString(valor);
+    const str = Auxiliares.fraccionToString(valor);  
     if (!str.includes("/")) return str;
-    const [num, den] = str.split("/");
+    const [num, den] = str.split("/");               
     return `<span class="frac"><span class="top">${num}</span><span class="bottom">${den}</span></span>`;
 }
 

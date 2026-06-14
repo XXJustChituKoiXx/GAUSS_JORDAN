@@ -365,7 +365,7 @@ function _keydownMatrixSpan(e, span) {
         default:
             if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey && e.key !== ' ') {
                 e.preventDefault();
-                if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(e.key)) return;
+                if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(e.key) && e.key !== '√') return;
                 const inp = spanToInput(span);
                 if (inp) { _coordsFromElement(inp); inp.value = e.key; inp.setSelectionRange(1, 1); }
             }
@@ -599,13 +599,13 @@ function _handleInput(e) {
         return;
     }
 
-    // Letras → eliminar
+    // Letras → eliminar (√ no es letra, se permite)
     if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) {
         valor = valor.replace(/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/g, '');
         input.value = valor;
     }
-    // Caracteres no válidos
-    valor = valor.replace(/[^0-9\-\/\.]/g, '');
+    // Caracteres no válidos (permitir √, (, ) para raíces)
+    valor = valor.replace(/[^0-9\-\/\.√()]/g, '');
     if (input.value !== valor) input.value = valor;
 
     // Más de una barra
@@ -616,30 +616,54 @@ function _handleInput(e) {
         input.value = valor;
     }
 
+    // Máximo una √ por segmento (numerador / denominador)
+    // Separar por la / que está FUERA de los paréntesis de raíz
+    if (valor.includes('√')) {
+        let profRaiz = 0;
+        let slashExterno = -1;
+        for (let i = 0; i < valor.length; i++) {
+            if (valor[i] === '(' && i > 0 && valor[i-1] === '√') profRaiz++;
+            else if (valor[i] === ')' && profRaiz > 0) profRaiz--;
+            else if (valor[i] === '/' && profRaiz === 0) { slashExterno = i; break; }
+        }
+        const segNum = slashExterno === -1 ? valor : valor.slice(0, slashExterno);
+        const segDen = slashExterno === -1 ? ''    : valor.slice(slashExterno + 1);
+        const masDeUnaRaizNum = (segNum.match(/√/g) || []).length > 1;
+        const masDeUnaRaizDen = (segDen.match(/√/g) || []).length > 1;
+        if (masDeUnaRaizNum || masDeUnaRaizDen) {
+            input.value = valor.slice(0, -1);
+            _sync();
+            return;
+        }
+    }
+
     // Convertir .5 → 0.5
     if (/^\.\d/.test(valor))   { input.value = '0' + valor; valor = input.value; }
     if (/^-\.\d/.test(valor))  { input.value = '-0' + valor.slice(1); valor = input.value; }
 
     // Validaciones adicionales de formato (solo matriz, EV es más permisiva)
     if (_mode === "matrix") {
-        if (/\.\./.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
+        // Si contiene raíz, saltar todas las validaciones de formato numérico
+        if (!valor.includes('√')) {
+            if (/\.\./.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
 
-        const parts = valor.split('/');
-        if (parts.length === 2) {
-            if ((parts[0].match(/\./g) || []).length > 1) { input.value = valor.slice(0, -1); _sync(); return; }
-            if ((parts[1].match(/\./g) || []).length > 1) { input.value = valor.slice(0, -1); _sync(); return; }
-        } else {
-            if ((valor.match(/\./g) || []).length > 1) { input.value = valor.slice(0, -1); _sync(); return; }
+            const parts = valor.split('/');
+            if (parts.length === 2) {
+                if ((parts[0].match(/\./g) || []).length > 1) { input.value = valor.slice(0, -1); _sync(); return; }
+                if ((parts[1].match(/\./g) || []).length > 1) { input.value = valor.slice(0, -1); _sync(); return; }
+            } else {
+                if ((valor.match(/\./g) || []).length > 1) { input.value = valor.slice(0, -1); _sync(); return; }
+            }
+
+            const negs = (valor.match(/-/g) || []).length;
+            if (negs > 2) { input.value = valor.slice(0, -1); _sync(); return; }
+            if (negs === 2 && !/^-\d*\.?\d*\/-\d*\.?\d*$/.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
+            if (negs === 1) {
+                if (valor.indexOf('-') !== 0 && !/\/-/.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
+            }
+
+            if (!/^-?\d*\.?\d*(\/-?\d*\.?\d*)?$/.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
         }
-
-        const negs = (valor.match(/-/g) || []).length;
-        if (negs > 2) { input.value = valor.slice(0, -1); _sync(); return; }
-        if (negs === 2 && !/^-\d*\.?\d*\/-\d*\.?\d*$/.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
-        if (negs === 1) {
-            if (valor.indexOf('-') !== 0 && !/\/-/.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
-        }
-
-        if (!/^-?\d*\.?\d*(\/-?\d*\.?\d*)?$/.test(valor)) { input.value = valor.slice(0, -1); _sync(); return; }
     } else {
         // EV: marcar error si inválido pero no bloquear escritura
         const esValido = valor === '' || valor === '-' || Auxiliares.esValorNumericoValido(valor, true);
@@ -737,6 +761,7 @@ function _sync() {
 
 function _matrixEsEntradaValida(valor) {
     if (valor === '' || valor === '-') return true;
+    if (valor.includes('√')) return true; // expresión con raíz
     if (/[a-zA-ZáéíóúÁÉÍÓÚñÑ]/.test(valor)) return false;
     if (/[^0-9\-\/\.]/.test(valor)) return false;
     if ((valor.match(/\//g) || []).length > 1) return false;

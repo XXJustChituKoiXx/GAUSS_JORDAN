@@ -119,44 +119,234 @@ export function parsearFraccion(valor) {
     return { num, den };
 }
 
-// Multiplicar dos fracciones
+function _mulPura(f1, f2) {
+    const num = f1.num * f2.num;
+    const den = f1.den * f2.den;
+    const [ns, ds] = simplificar(num, den);
+    return { num: ns, den: ds };
+}
+
+function _sumPura(f1, f2) {
+    const num = f1.num * f2.den + f2.num * f1.den;
+    const den = f1.den * f2.den;
+    const [ns, ds] = simplificar(num, den);
+    return { num: ns, den: ds };
+}
+
+function _resPura(f1, f2) {
+    const num = f1.num * f2.den - f2.num * f1.den;
+    const den = f1.den * f2.den;
+    const [ns, ds] = simplificar(num, den);
+    return { num: ns, den: ds };
+}
+
+function _mismoRadicando(r1, r2) {
+    return r1.num * r2.den === r2.num * r1.den;
+}
+
+function _raizExacta(radicando) {
+    const val = radicando.num / radicando.den;
+    if (val < 0) return null;
+    const raiz = Math.sqrt(val);
+    if (Math.abs(raiz - Math.round(raiz)) < 1e-10) {
+        // Es exacta: √(p/q) = √p/√q cuando ambos son cuadrados perfectos
+        const sqrtNum = Math.round(Math.sqrt(radicando.num));
+        const sqrtDen = Math.round(Math.sqrt(radicando.den));
+        if (sqrtNum * sqrtNum === radicando.num && sqrtDen * sqrtDen === radicando.den) {
+            const [ns, ds] = simplificar(sqrtNum, sqrtDen);
+            return { num: ns, den: ds };
+        }
+    }
+    return null;
+}
+
 export function multiplicarFracciones(frac1, frac2) {
+    const r1 = frac1.raiz, r2 = frac2.raiz;
+
+    if (r1 && r2) {
+        // (a√r1)(b√r2) = ab√(r1·r2)
+        const coef = _mulPura(frac1, frac2);
+        const radicandoProducto = _mulPura(r1, r2);
+
+        // Intentar simplificar el radicando
+        const exacta = _raizExacta(radicandoProducto);
+        if (exacta) {
+            // √(r1·r2) es exacta → número puro
+            return _mulPura(coef, exacta);
+        }
+
+        // Simplificar: sacar factores cuadrados del radicando
+        const { coeficiente: raizCoef, radicando: nuevoRad } = _simplificarRadicandoFraccion(radicandoProducto);
+        const nuevoCoef = _mulPura(coef, raizCoef);
+        if (nuevoRad.num === 1 && nuevoRad.den === 1) {
+            return nuevoCoef;
+        }
+        return { ...nuevoCoef, raiz: nuevoRad };
+    }
+
+    if (r1 && !r2) {
+        // (a√r) * b = (a*b)√r
+        if (frac2.num === 0) return { num: 0, den: 1 };
+        const nuevoCoef = _mulPura(frac1, frac2);
+        return { ...nuevoCoef, raiz: r1 };
+    }
+
+    if (!r1 && r2) {
+        if (frac1.num === 0) return { num: 0, den: 1 };
+        const nuevoCoef = _mulPura(frac1, frac2);
+        return { ...nuevoCoef, raiz: r2 };
+    }
+
+    // Caso normal sin raíces
     const num = frac1.num * frac2.num;
     const den = frac1.den * frac2.den;
-    const [numSimp, denSimp] = simplificar(num, den);
-    return { num: numSimp, den: denSimp };
+    const [ns, ds] = simplificar(num, den);
+    return { num: ns, den: ds };
 }
 
-// Sumar dos fracciones
 export function sumarFraccionesObj(frac1, frac2) {
-    const num = frac1.num * frac2.den + frac2.num * frac1.den;
-    const den = frac1.den * frac2.den;
-    const [numSimp, denSimp] = simplificar(num, den);
-    return { num: numSimp, den: denSimp };
+    const r1 = frac1.raiz, r2 = frac2.raiz;
+
+    if (r1 && r2 && _mismoRadicando(r1, r2)) {
+        // (a√r) + (b√r) = (a+b)√r
+        const nuevoCoef = _sumPura(frac1, frac2);
+        if (nuevoCoef.num === 0) return { num: 0, den: 1 };
+        return { ...nuevoCoef, raiz: r1 };
+    }
+
+    if (!r1 && !r2) {
+        // Caso normal sin raíces
+        const num = frac1.num * frac2.den + frac2.num * frac1.den;
+        const den = frac1.den * frac2.den;
+        const [ns, ds] = simplificar(num, den);
+        return { num: ns, den: ds };
+    }
+
+    if (!r1 && frac1.num === 0) return frac2;
+    if (!r2 && frac2.num === 0) return frac1;
+
+    return frac1;
 }
 
-// Restar fracciones
 export function restarFracciones(frac1, frac2) {
-    const num = frac1.num * frac2.den - frac2.num * frac1.den;
-    const den = frac1.den * frac2.den;
-    const [numSimp, denSimp] = simplificar(num, den);
-    return { num: numSimp, den: denSimp };
+    const r1 = frac1.raiz, r2 = frac2.raiz;
+
+    if (r1 && r2 && _mismoRadicando(r1, r2)) {
+        const nuevoCoef = _resPura(frac1, frac2);
+        if (nuevoCoef.num === 0) return { num: 0, den: 1 };
+        return { ...nuevoCoef, raiz: r1 };
+    }
+
+    if (!r1 && !r2) {
+        const num = frac1.num * frac2.den - frac2.num * frac1.den;
+        const den = frac1.den * frac2.den;
+        const [ns, ds] = simplificar(num, den);
+        return { num: ns, den: ds };
+    }
+
+    if (!r2 && frac2.num === 0) return frac1;
+
+    console.warn("restarFracciones: resta de raíces distintas no simplificable", frac1, frac2);
+    return frac1; // fallback conservador
 }
 
-// Dividir fracciones
 export function dividirFracciones(frac1, frac2) {
     if (frac2.num === 0) throw new Error("División por cero");
+
+    const r1 = frac1.raiz, r2 = frac2.raiz;
+
+    if (r1 && r2 && _mismoRadicando(r1, r2)) {
+        return _mulPura(
+            { num: frac1.num, den: frac1.den },
+            { num: frac2.den, den: frac2.num }
+        );
+    }
+
+    // (a / b√r) = (a * √r) / (b * r)
+    if (r2) {
+        // Coeficiente resultante: (a / (b * r))
+        // r es r2.num/r2.den, entonces b * r = (frac2.den * r2.num) / r2.den
+        const numFinal = frac1.num * frac2.den * r2.den;
+        const denFinal = frac1.den * frac2.num * r2.num;
+        
+        const [ns, ds] = simplificar(numFinal, denFinal);
+        
+        return { 
+            num: ns, 
+            den: ds, 
+            raiz: { num: r2.num, den: r2.den } 
+        };
+    }
+
+    if (r1 && !r2) {
+        const nuevoCoef = _mulPura(frac1, { num: frac2.den, den: frac2.num });
+        return { ...nuevoCoef, raiz: r1 };
+    }
+
     const num = frac1.num * frac2.den;
     const den = frac1.den * frac2.num;
-    const [numSimp, denSimp] = simplificar(num, den);
-    return { num: numSimp, den: denSimp };
+    const [ns, ds] = simplificar(num, den);
+    return { num: ns, den: ds };
 }
 
-// Fracción a string para mostrar
+function _simplificarRadicandoFraccion(radicando) {
+    const numEntero = radicando.num;
+    const denEntero = radicando.den;
+
+    const { coeficiente: coefNum, radicando: radNum } = _simplificarRaizEntero(numEntero);
+    const { coeficiente: coefDen, radicando: radDen } = _simplificarRaizEntero(denEntero);
+
+    const [cn, cd] = simplificar(coefNum, coefDen);
+    const [rn, rd] = simplificar(radNum, radDen);
+    return {
+        coeficiente: { num: cn, den: cd },
+        radicando: { num: rn, den: rd }
+    };
+}
+
+function _simplificarRaizEntero(n) {
+    if (n <= 0) return { coeficiente: 1, radicando: Math.abs(n) || 1 };
+    let radicando = n;
+    let coeficiente = 1;
+    for (let i = Math.floor(Math.sqrt(radicando)); i >= 2; i--) {
+        while (radicando % (i * i) === 0) {
+            coeficiente *= i;
+            radicando /= (i * i);
+        }
+    }
+    return { coeficiente, radicando };
+}
+
 export function fraccionToString(frac) {
-    if (frac.den === 1) return `${frac.num}`;
-    if (frac.num === 0) return "0";
-    return `${frac.num}/${frac.den}`;
+    // 1. Si no hay raíz, es una fracción normal
+    if (!frac.raiz) {
+        if (frac.num === 0) return "0";
+        if (frac.den === 1) return `${frac.num}`;
+        return `${frac.num}/${frac.den}`;
+    }
+
+    // 2. Si hay raíz, preparamos la parte de la raíz
+    // Si den es 1, mostramos solo √num, si es fracción mostramos √(num/den)
+    const radStr = frac.raiz.den === 1
+        ? `√${frac.raiz.num}`
+        : `√(${frac.raiz.num}/${frac.raiz.den})`;
+
+    // Simplificamos el coeficiente (frac.num / frac.den)
+    const [n, d] = simplificar(frac.num, frac.den);
+
+    // 3. Casos de visualización limpia
+    // Si el denominador es 1, no mostramos fracción
+    if (d === 1) {
+        if (n === 1) return radStr;      // Ejemplo: √5
+        if (n === -1) return `-${radStr}`;// Ejemplo: -√5
+        return `${n}${radStr}`;          // Ejemplo: 2√5
+    }
+
+    // 4. Si el denominador es mayor a 1, mostramos fracción
+    // Si el numerador es 1, no ponemos el "1" adelante de la raíz
+    const coefStr = (n === 1) ? "" : (n === -1 ? "-" : `${n}`);
+    
+    return `${coefStr}${radStr}/${d}`;
 }
 
 // Comparar con cero
@@ -164,7 +354,7 @@ export function esCero(frac) {
     return frac.num === 0;
 }
 
-// Parsear matriz desde DOM a array de números 2D
+// Parsear matriz desde DOM a array de fracciones 2D (con soporte de raíz)
 export function parsearMatriz(table) {
     return Array.from(table.rows).map(row =>
         Array.from(row.cells).map(cell => {
@@ -181,15 +371,35 @@ export function parsearMatriz(table) {
             }
 
             try {
+                const str = String(valor).trim();
+
+                // ← CORREGIDO: detectar raíces antes de llamar parsearFraccion
+                if (str.includes('√')) {
+                    const expr = evaluarExpresionCompleta(str);
+                    if (expr && expr.tipo === "raiz") {
+                        return {
+                            num: expr.coeficiente.num,
+                            den: expr.coeficiente.den,
+                            raiz: expr.radicando,
+                            _tieneDecimal: false
+                        };
+                    }
+                    if (expr && expr.tipo === "numero") {
+                        return {
+                            num: expr.valor.num,
+                            den: expr.valor.den,
+                            _tieneDecimal: false
+                        };
+                    }
+                    // No se pudo parsear la raíz
+                    return { num: 0, den: 1, _tieneDecimal: false };
+                }
+
                 const frac = parsearFraccion(valor);
                 const [num, den] = simplificar(frac.num, frac.den);
                 const tieneDecimal = valor.includes('.');
 
-                return {
-                    num,
-                    den,
-                    _tieneDecimal: tieneDecimal
-                };
+                return { num, den, _tieneDecimal: tieneDecimal };
             } catch (e) {
                 alert(`Error: ${e.message} en celda con valor "${valor}"`);
                 throw e;
@@ -206,6 +416,12 @@ export function normalizarValorTexto(valor) {
     if (str === "" || str === "-") return str;
 
     try {
+        if (str.includes('√')) {
+            const expr = evaluarExpresionCompleta(str);
+            if (expr) return expresionRaizToString(expr);
+            return str;
+        }
+
         if (str.includes("/")) {
             const partes = str.split("/");
             if (partes.length !== 2) return str;
@@ -230,6 +446,11 @@ export function normalizarValorTexto(valor) {
 }
 
 export function formatearResultado(frac, tieneDecimal) {
+    // Si tiene raíz, mostrar en forma simbólica
+    if (frac.raiz) {
+        return fraccionToString(frac);
+    }
+
     const valorDecimal = frac.num / frac.den;
     
     if (frac.num === 0) return "0";
@@ -415,9 +636,9 @@ export function insertarColumna(table, colIndex) {
 
 export function normalizarSigno(frac) {
     if (frac.den < 0) {
-        return { num: -frac.num, den: -frac.den };
+        return { num: -frac.num, den: -frac.den, ...(frac.raiz ? { raiz: frac.raiz } : {}) };
     }
-    return { num: frac.num, den: frac.den };
+    return frac;
 }
 
 // Convertir vectores horizontales a matriz de fracciones
@@ -440,7 +661,20 @@ export function parsearVectoresAMatriz(vectores, agregarColumnaCeros = true) {
                 throw new Error(`Valor inválido en α${j + 1}, componente ${i + 1}: "${valor}"`);
             }
 
-            fila.push(parsearFraccion(valor));
+            // ← CORREGIDO: parsear raíces también aquí
+            const str = String(valor).trim();
+            if (str.includes('√')) {
+                const expr = evaluarExpresionCompleta(str);
+                if (expr && expr.tipo === "raiz") {
+                    fila.push({ num: expr.coeficiente.num, den: expr.coeficiente.den, raiz: expr.radicando });
+                } else if (expr && expr.tipo === "numero") {
+                    fila.push({ num: expr.valor.num, den: expr.valor.den });
+                } else {
+                    fila.push({ num: 0, den: 1 });
+                }
+            } else {
+                fila.push(parsearFraccion(valor));
+            }
         }
 
         if (agregarColumnaCeros) {
@@ -458,7 +692,12 @@ export function esVectorCero(vector) {
 }
 
 export function obtenerColumna(matriz, colIndex) {
-    return matriz.map(fila => ({ num: fila[colIndex].num, den: fila[colIndex].den }));
+    return matriz.map(fila => {
+        const c = fila[colIndex];
+        return c.raiz
+            ? { num: c.num, den: c.den, raiz: c.raiz }
+            : { num: c.num, den: c.den };
+    });
 }
 
 export function vectorToString(vector) {
@@ -745,7 +984,19 @@ export function tablaTieneErrores(table) {
     }
     return false;
 }
+export function crearHTMLFraccionConRaiz(num, den, raiz) {
+    const radStr = `√${raiz.num}${raiz.den !== 1 ? "/" + raiz.den : ""}`;
+    
+    if (den === 1) {
+        return `${num === 1 ? "" : num}${radStr}`;
+    }
 
+    return `
+        <span class="frac">
+            <span class="top">${num === 1 ? "" : num}${radStr}</span>
+            <span class="bottom">${den}</span>
+        </span>`;
+}
 const auxiliares = {
     esVectorCero,
     obtenerColumna,

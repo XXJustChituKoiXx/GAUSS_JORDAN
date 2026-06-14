@@ -384,12 +384,42 @@ export function inputToSpan(input) {
     let exprSimplificada = null;
     
     if (contieneRaiz(value)) {
-        // Mantener la expresión de raíz tal como está, no simplificar
-        finalValue = value;
-        // Solo evaluar si es necesario para mostrar decimales
-        if (!value.includes('√()') && !value.includes('√)')) {
-            exprSimplificada = Auxiliares.evaluarExpresionCompleta(value);
+        // Casos validos: √(n), k√(n), -√(n), √(n)/√(m)
+        // Si hay / FUERA de los parentesis, es raiz/raiz → simplificar radicando
+        const slashExterno = (() => {
+            let prof = 0;
+            for (let i = 0; i < value.length; i++) {
+                if (value[i] === '(' && i > 0 && value[i-1] === '√') prof++;
+                else if (value[i] === ')' && prof > 0) prof--;
+                else if (value[i] === '/' && prof === 0) return i;
+            }
+            return -1;
+        })();
+
+        let exprParaEvaluar = value;
+        if (slashExterno !== -1) {
+            // √(a)/√(b) → evaluarExpresionCompleta con √(a/b)
+            const parteNum = value.slice(0, slashExterno).trim();
+            const parteDen = value.slice(slashExterno + 1).trim();
+            const matchNum = parteNum.match(/^(-?\d*\/\d+|-?\d*)√\(([^)]+)\)$/);
+            const matchDen = parteDen.match(/^(-?\d*\/\d+|-?\d*)√\(([^)]+)\)$/);
+            if (matchNum && matchDen) {
+                const coefNum = matchNum[1] || '1';
+                const coefDen = matchDen[1] || '1';
+                const radNum  = matchNum[2];
+                const radDen  = matchDen[2];
+                // (coefNum/coefDen)√(radNum/radDen)
+                const coefStr = (coefNum === '1' && coefDen === '1') ? '' :
+                                (coefDen === '1') ? coefNum + '/' + coefDen :
+                                coefNum + '/' + coefDen;
+                exprParaEvaluar = `${coefStr}√(${radNum}/${radDen})`;
+            }
         }
+
+        if (!exprParaEvaluar.includes('√()') && !exprParaEvaluar.endsWith('√(')) {
+            exprSimplificada = Auxiliares.evaluarExpresionCompleta(exprParaEvaluar);
+        }
+        finalValue = value;
     } else {
         value = Auxiliares.simplificarExpresion(value);
         finalValue = Auxiliares.normalizarValorTexto(value);
@@ -507,49 +537,44 @@ export function preservarEstructuraRaiz(valorActual, nuevoValor, cursorPos) {
 export function insertarRaiz() {
     let elementoActivo = document.activeElement;
     
-    // Si es un span, convertirlo a input
     if (elementoActivo && elementoActivo.classList.contains('cell-span')) {
         elementoActivo = spanToInput(elementoActivo);
     }
-    
-    // Si no es un input, salir
     if (!elementoActivo || !elementoActivo.classList.contains('cell-input')) {
         return false;
     }
     
-    // Guardar posición del cursor
     const cursorPos = elementoActivo.selectionStart || 0;
     const currentValue = elementoActivo.value;
-    
-    // Buscar si ya hay una raíz en la posición del cursor
-    let insertPosition = cursorPos;
-    let dentroDeRaiz = false;
-    
-    // Verificar si el cursor está dentro de una raíz existente
+
+    // Determinar en qué segmento (num o den) está el cursor,
+    // usando la / externa (fuera de paréntesis de raíz)
+    let profRaiz = 0;
+    let slashExterno = -1;
+    for (let i = 0; i < currentValue.length; i++) {
+        if (currentValue[i] === '(' && i > 0 && currentValue[i-1] === '√') profRaiz++;
+        else if (currentValue[i] === ')' && profRaiz > 0) profRaiz--;
+        else if (currentValue[i] === '/' && profRaiz === 0) { slashExterno = i; break; }
+    }
+    const segmento = (slashExterno === -1 || cursorPos <= slashExterno)
+        ? (slashExterno === -1 ? currentValue : currentValue.slice(0, slashExterno))
+        : currentValue.slice(slashExterno + 1);
+
+    // Bloquear si ya hay una √ en este segmento
+    if (segmento.includes('√')) return false;
+
+    // Bloquear si el cursor está dentro de una raíz existente
     const raizPattern = /√\([^)]*\)/g;
     let match;
     while ((match = raizPattern.exec(currentValue)) !== null) {
-        const inicioRaiz = match.index;
-        const finRaiz = match.index + match[0].length;
-        if (cursorPos > inicioRaiz && cursorPos < finRaiz) {
-            dentroDeRaiz = true;
-            break;
+        if (cursorPos > match.index && cursorPos < match.index + match[0].length) {
+            return false;
         }
     }
-    
-    let nuevoValor;
-    if (dentroDeRaiz) {
-        // Si estamos dentro de una raíz, no insertar otra, mantener el cursor
-        nuevoValor = currentValue;
-        insertPosition = cursorPos;
-    } else {
-        // Insertar nueva raíz
-        nuevoValor = currentValue.slice(0, cursorPos) + "√()" + currentValue.slice(cursorPos);
-        insertPosition = cursorPos + 2;
-    }
-    
+
+    const nuevoValor = currentValue.slice(0, cursorPos) + "√()" + currentValue.slice(cursorPos);
     elementoActivo.value = nuevoValor;
-    elementoActivo.setSelectionRange(insertPosition, insertPosition);
-    
+    elementoActivo.setSelectionRange(cursorPos + 2, cursorPos + 2);
+    elementoActivo.dispatchEvent(new Event('input', { bubbles: true }));
     return true;
 }
